@@ -1,0 +1,77 @@
+#!/bin/sh
+PROG=venv-init
+DESC="Initialize a python virtual environment for amiemediator"
+USAGE1="$PROG service_provider_dir"
+USAGE2="$PROG -h|--help"
+HELP_TEXT="
+        This script initializes a python virtual environment directory for
+        amiemediator. It requires that python (v3.9 or higher) be installed
+        on the host.
+
+        Running amiemediator in a virtual environment is an alternative to
+        running it in a container; it can be especially advantageous when using
+        a python IDE.
+
+How to attach a serviceprovider?
+
+-v|--venv-dir=venv_dir  (default=venv.d)
+-s|--sp-dir=sp_dir
+
+sp_dir is assumed to contain a package directory containing the service provider
+python modules, and optionally a 'pip-packages' file.
+
+
+
+
+        
+
+
+        If the first argument is -h or --help, the script will display help
+        text for the \"${PROG}\" script and quit. Otherwise, if the first
+        argument starts with \"-\", the \"amie\" script will be run with
+        all \"${PROG}\" arguments passed to \"amie\". Otherwise, the
+        \"${PROG}\" arguments will be run as a command. For example,
+        \"run run-all-tests\" will run the \"run-all-tests\" script in the
+        amiemediator container.
+
+        If the \"amie\" script is run, \"${PROG}\" will also check if
+        the \"-c|--configfile\" argument is included in the argument list;
+        if it is, \"${PROG}\" will ensure that the configuration file is mounted
+        in the container.
+
+ENVIRONMENT
+        IMAGE
+            The name of the image to use instead of \"ghcr.io/ncar/${PACKAGE}\".
+        PACKAGE_DIR
+            The amiemediator top-level directory. Default is the directory
+            containing the $PROG script.
+"
+
+SCRIPTDIR=`cd \`dirname $0\`; /bin/pwd`
+base_candidates="
+  ${PACKAGE_DIR}
+  .
+  ..
+  ${SCRIPTDIR}/..
+  ${SCRIPTDIR}/..
+  ${SCRIPTDIR}/../..
+"
+
+MEDIATOR_DIR=
+for base_candidate in ${base_candidates} ; do
+    if [ -d "${base_candidate}" ] && [ -f "${base_candidate}/Dockerfile" ] &&
+       [ -d "${base_candidate}/mediator" ]
+    then
+        MEDIATOR_DIR=`cd "${base_candidate}" ; /bin/pwd`
+        break
+    fi
+done
+if [ ":${MEDIATOR_DIR}" = ":" ] ; then
+    echo "${PROG}: cannot determine amiemediator package directory" >&2
+    exit 1
+fi
+PACKAGE_DIR=${MEDIATOR_DIR}
+export PACKAGE_DIR
+
+VENV_DIR="${PACKAGE_DIR}/venv"
+

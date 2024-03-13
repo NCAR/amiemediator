@@ -1,0 +1,309 @@
+#!/usr/bin/env python
+import sys, os, getopt
+from stat import *
+import signal
+import select
+import fileinput
+import re
+import subprocess
+import pprintpp
+pprintpp.monkeypatch()
+import pprint
+from datetime import datetime
+from snapshot import Snapshots
+from pathlib import Path
+from config import ConfigLoader
+from miscfuncs import truthy, to_expanded_string
+
+PROG = "viewpackets"
+DESC = "View actionable packets"
+USAGE1 = PROG + " [-c|--configfile=<file>] [-l|--loop] [-d|--delay=sec] [key]"
+USAGE2 = PROG + " -h|--help"
+USAGE = f'''Usage: {USAGE1}
+         or
+       {USAGE2}'''
+
+DEFAULT_DELAY = 60
+LIST_APACKET_FIELDS = ["TransactionId.PacketRecId.PacketType"]
+LIST_APACKET_LINES =  ["------------------------------------"]
+LIST_APACKET_FORMAT =  "{0}"
+LIST_TASK_FIELDS =    ["TaskName", "State", "Updated"]
+LIST_TASK_LINES =     ["--------", "-----", "-------"]
+LIST_TASK_FORMAT =     "  {0:<40} {1:<11} {2}"
+
+dd = str(DEFAULT_DELAY)
+
+HELP_TEXT = f'''
+{PROG}: View actionable packets
+{USAGE}
+
+The "amie" program mediates between the AMIE server and the local service
+provider; specifically, it retrieves AMIE packets from the AMIE server, and
+for each packet it triggers a set of operations on the service provider.
+    
+When an operation cannot be completed immediately, the service provider will
+create a "task" object. The "amie" program will automatically monitor the
+status of each task until all work for the packet is complete and a reply can
+be sent back to the AMIE server.
+
+When "amie" accepts an AMIE packet for work, it converts it into an
+"ActionablePacket" object and ties any associated tasks to this object.
+Whenever an ActionablePacket is created/modified, "amie" writes/updates a
+"snapshot" file that captures the relevant state of the ActionablePacket as
+readable text. All snapshot files are written to a directory identified in the
+"amie" configuration file ("snapshot_dir"). When work for a packet is complete,
+its associated ActionablePacket object is destroyed and the corresponding
+snapshot file is removed.
+
+The {PROG} program simply monitors the snapshot directory and prints what
+it finds.
+    
+  -c|--configfile : Configuration ("ini") file. If not specified, the
+                    "CONFIG_INI" environment variable will be checked for the
+                    name of a file; otherwise, "./config.ini" is assumed. The
+                    configuration is expected to contain a "[mediator]" section
+                    with a "snapshot_dir" parameter that identifies the
+                    directory containing the snapshot files.
+  -l|--loop       : Normally, {PROG} lists the current status of packets or
+                    the contents of a specfic packet and then exists. The
+                    --loop flag will cause {PROG} to continue reading
+                    snapshots and updating the display until a keyboard
+                    interrupt is encountered or, if a single packet is being
+                    displayed, the snapshot is removed. In addition, if
+                    standard output is a terminal, the "clear" command is
+                    effectively executed at the start of each iteration.
+                    Updates are displayed when an update is detected or after
+                    the -d|--delay period (default={dd} secs), whichever comes
+                    first.
+  -d|--delay=sec    The maximum time to wait in seconds before refreshing the
+                    display when in "loop" mode (default={dd})
+  -h|--help       : Display help test and quit
+  key             : If present, the packet with the given name is displayed
+                    in full. Without this argument, a list of all packets and
+                    their status is displayed.
+    '''
+
+envUSAGE = os.environ.get('USAGE',None)
+if envUSAGE is not None:
+    USAGE = envUSAGE
+
+envHELP_TEXT = os.environ.get('HELP_TEXT',None)
+if envHELP_TEXT is not None:
+    HELP_TEXT = envHELP_TEXT
+
+def help():
+    help_text = f'''
+{PROG}: {DESC}
+{USAGE}
+
+{HELP_TEXT}
+    '''
+    print(help_text)
+
+def main(argv):
+    run_info = process_command_line_and_configuration(argv)
+
+    config = run_info['config']
+    loop = run_info['loop']
+    delay = run_info['delay']
+    key = run_info['key']
+    mode = 'RECORD' if key else 'LIST'
+
+    mediator_config = config['mediator']
+    dir = mediator_config.get("snapshot_dir",None)
+    if dir is None:
+        prog_err("[mediator].snapshot_dir parameter is missing")
+        sys.exit(1)
+    if sys.stdout.isatty():
+        clear_result = subprocess.run(['clear'], stdout=subprocess.PIPE)
+        refresh_str = clear_result.stdout
+    else:
+        refresh_str = b'---\n'
+
+    monitor_file = None
+    if (mode == 'LIST') and sys.stdin.isatty():
+        monitor_file = monitor_tty(dir)
+
+    try:
+        snapshots = Snapshots(dir, 'r')
+
+        if loop:
+            max_wait = 0
+            token = None
+            while True:
+                sys.stdout.buffer.write(refresh_str)
+                if key:
+                    token = show_packet_detail(snapshots, key, max_wait, token)
+                    input = check_for_input(monitor_file)
+                    if (not token) or (not input) or \
+                       (not Path(dir,input).is_file()):
+                        key = None
+                        show_packets_list(snapshots, 0)
+                else:
+                    show_packets_list(snapshots, max_wait)
+                    input = check_for_input(monitor_file)
+                    if input:
+                        p = Path(dir,input)
+                        
+                    if (input is not None) and Path(dir,input).is_file():
+                        key = input
+                max_wait = delay
+        else:
+            if key:
+                show_packet_detail(snapshots, key, 0, None)
+            else:
+                show_packets_list(snapshots, 0)
+
+    except KeyboardInterrupt as ki:
+        sys.exit(2)
+
+    sys.exit(0)
+
+def process_command_line_and_configuration(argv):
+    run_info = process_command_line(argv)
+    configfile = run_info['configfile']
+
+    config = ConfigLoader.loadConfig(configfile)
+    run_info['config'] = config
+
+    return run_info
+
+def process_command_line(argv):
+    print(str(argv))
+    argv.pop(0)
+    configfile = os.environ.get('CONFIG_INI','config.ini')
+    loop = False
+    delay = DEFAULT_DELAY
+    key = None
+    try:
+        opts,args = getopt.getopt(argv,"hld:c:",
+                                  [ "help", "loop", "delay=", "configfile="])
+    except getopt.GetoptError as e:
+        prog_err(e)
+        print_err(USAGE)
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h","--help"):
+            help()
+            sys.exit(0)
+        elif opt in ("-c","--configfile"):
+            configfile = arg
+        elif opt in ("-l","--loop"):
+            loop = True
+        elif opt in ("-d","--delay"):
+            delay = int(arg)
+
+    if args:
+        key = args[0]
+
+    return {
+        'configfile': configfile,
+        'loop': loop,
+        'delay': delay,
+        'key': key
+    }
+
+
+def show_packet_detail(snapshots, key, max_wait, token):
+    (ap_snap, token) = snapshots.get_when_updated(key, max_wait, token)
+    if ap_snap:
+        print(key + ":\n" + to_expanded_string(ap_snap))
+    return token
+    
+
+def show_packets_list(snapshots, max_wait):
+    ap_snaps = snapshots.list_when_updated(max_wait)
+    
+    print(LIST_APACKET_FORMAT.format(*LIST_APACKET_FIELDS))
+    print(LIST_APACKET_FORMAT.format(*LIST_APACKET_LINES))
+    print(LIST_TASK_FORMAT.format(*LIST_TASK_FIELDS))
+    print(LIST_TASK_FORMAT.format(*LIST_TASK_LINES))
+    for ap_snap in ap_snaps:
+        tid = ap_snap['amie_transaction_id']
+        pid = ap_snap['amie_packet_rec_id']
+        packet_type = ap_snap['packet_type']
+        key = tid + '.' + pid + '.' + packet_type
+        print(LIST_APACKET_FORMAT.format(key))
+        task_status_list = ap_snap.get('tasks',None)
+        if not task_status_list:
+            continue
+        for task in task_status_list:
+            name = task['task_name']
+            state = task['task_state']
+            timestamp = float(task['timestamp'])
+            dt = datetime.fromtimestamp(timestamp/1000)
+            ftimestamp = dt.isoformat()[0:23]
+            print(LIST_TASK_FORMAT.format(name, state, ftimestamp))
+
+    
+def print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def prog_err(*args, **kwargs):
+    sys.stderr.write(PROG + ": ")
+    print_err(*args, **kwargs)
+
+def monitor_tty(dir):
+    if not sys.stdin.isatty():
+        return
+    infile = str(Path(dir,".MONITOR_STDIN"+str(os.getpid())))
+
+    # make sure we can create the key file and it is empty
+    f = open(infile, "w")
+    f.close()
+    
+    r,w = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        # child continues with viewpackets main function
+        os.close(w)
+        rf = os.fdopen(r)
+        sys.stdin = rf
+        return infile
+    else:
+        # parent just copies standard input to a file and unblocks the child
+        # whenever it reads a line
+        os.close(r)
+        snapshots = Snapshots(dir, 'w', purge_writeable=False)
+        try:
+            copy_input_to_file(infile, snapshots)
+        except Exception as e:
+            raise e
+        finally:
+            Path(infile).unlink(missing_ok=True)
+        sys.exit(2)
+            
+KEY_PATTERN = re.compile(r"^([a-zA-Z0-9:]*[.][0-9]*[.][-_a-zA-Z0-9]*)( .*)?$")
+
+def copy_input_to_file(infile, snapshots):
+    while True:
+        line = sys.stdin.readline()
+        if len(line) == 0:
+            return
+        match = KEY_PATTERN.match(line)
+        if match is not None:
+            key = match.group(1)
+        else:
+            key = ''
+        f = open(infile, "w")
+        f.write(key + "\n")
+        f.close()
+        snapshots.release()
+
+def check_for_input(infile):
+    while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+        sys.stdin.readline()
+
+    if not infile:
+        return
+    statinfo = os.stat(infile)
+    if statinfo.st_size == 0:
+        return None
+    f = open(infile, "r")
+    key = f.readline()
+    key = key.rstrip()
+    return key if key != '' else None
+
+if __name__ == '__main__':
+    main(sys.argv)

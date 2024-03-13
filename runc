@@ -1,0 +1,144 @@
+#!/bin/sh
+PROG=runc
+DESC="Run the amiemediator container in \"development mode\""
+USAGE1="$PROG [-s secrets_dir] command..."
+USAGE2="$PROG -h|--help"
+PACKAGE=amiemediator
+PACKAGE_DIR="${PACKAGE_DIR:-/usr/local/${PACKAGE}}"
+IMAGE="${IMAGE:-ghcr.io/ncar/${PACKAGE}}"
+HELP_TEXT="
+        This script runs the indicated command in a container using the
+        \"ghcr.io/ncar/${PACKAGE}\" image. The directory containing the
+        \"${PROG}\" script will be mounted at /usr/local/${PACKAGE} in
+        the container, which allows you to actively edit the python code in the
+        ${PACKAGE} package outside the container while the container is
+        running.
+
+        If you execute the \"${PROG}\" script from the script's directory or
+        under it, the working directory in the container will be at the same
+        relative position under /usr/local/${PACKAGE}.
+
+        If the first argument is -h or --help, the script will display help
+        text for the \"${PROG}\" script and quit. Otherwise, if the first
+        argument starts with \"-\", the \"amie\" script will be run with
+        all \"${PROG}\" arguments passed to \"amie\". Otherwise, the
+        \"${PROG}\" arguments will be run as a command. For example,
+        \"run run-all-tests\" will run the \"run-all-tests\" script in the
+        amiemediator container.
+
+        If the \"amie\" script is run, \"${PROG}\" will also check if
+        the \"-c|--configfile\" argument is included in the argument list;
+        if it is, \"${PROG}\" will ensure that the configuration file is mounted
+        in the container.
+
+ENVIRONMENT
+        IMAGE
+            The name of the image to use instead of \"ghcr.io/ncar/${PACKAGE}\".
+        PACKAGE_DIR
+            The amiemediator top-level directory. Default is the directory
+            containing the $PROG script.
+"
+
+SCRIPTDIR=`cd \`dirname $0\`; /bin/pwd`
+AMIEMED_CMD=
+AMIEMED_CONFIG=
+CONFIG_MOUNT=
+WORKDIR=
+SECRETS_DIR=${SECRETS_DIR}
+SECRETS_ARGS=
+
+case $1 in
+    -h|--help)
+        cat <<EOF
+NAME
+        ${PROG} - ${DESC}
+
+SYNOPSIS
+        ${USAGE1}
+        ${USAGE2}
+
+DESCRIPTION${HELP_TEXT}
+EOF
+        exit 0 ;;
+    -s)
+        SECRETS_DIR=$2
+        shift
+        shift ;;
+    -s?*)
+        SECRETS_DIR=`eval "$1" : '-s\(.*\)'`
+        shift ;;
+    -*)
+        AMIEMED_CMD=${PACKAGE_DIR}/bin/amie ;;
+    amie)
+        AMIEMED_CMD=${PACKAGE_DIR}/bin/amie
+        shift ;;
+    */amie)
+        AMIEMED_CMD=$1
+        shift ;;
+esac
+if [ ":${SECRETS_DIR}" != ":" ] ; then
+    if [ ! -d ${SECRETS_DIR} ] ; then
+        echo "${PROG}: '${SECRETS_DIR}' is not a directory" >&2
+        exit 1
+    fi
+    SECRETS_ARGS="-eSECRETS_DIR=/run/secrets -v${SECRETS_DIR}:/run/secrets:z"
+fi
+if [ ":${AMIEMED_CMD}" != ":" ] ; then
+    set : "$@" eNdEnD
+    shift
+    while [ ":$1" != ":eNdEnD" ] ; do
+        arg="$1"
+        shift
+        configarg=
+        case ${arg} in
+            -s|--site)
+                SITE="$2"
+                shift
+                set : "$@" --site="${SITE}"
+                shift ;;
+            -c?*)
+                configarg=`expr "${arg}" : '-c\(.*\)'` ;;
+            --configfile=*)
+                configarg=`expr "${arg}" : '--configfile=\(.*\)'` ;;
+            -c|--configfile)
+                configarg="$2"
+                shift ;;
+            *)
+                set : "$@" ${arg}
+                shift ;;
+        esac
+        if [ ":${configarg}" != ":" ] ; then
+            if [ -f "${configarg}" ] ; then
+                b=`basename ${configarg}`
+                d=`dirname ${configarg}`
+                ad=`cd "$d" ; /bin/pwd`
+                case ${ad} in
+                    ${SCRIPTDIR}|${SCRIPTDIR}/*)
+                        : ;;
+                    *)
+                        configarg=${ad}/${b}
+                        CONFIG_MOUNT="-v${configarg}:${configarg}:z" ;;
+                esac
+            fi
+            set : "$@" --configfile="${configarg}"
+            shift
+        fi
+    done
+    shift
+fi
+
+cwd=`/bin/pwd`
+case $cwd in
+    ${SCRIPTDIR}|${SCRIPTDIR}/*)
+        rcwd=`expr "${cwd}" : "${SCRIPTDIR}\\(.*\\)"`
+        WORKDIR="-w ${PACKAGE_DIR}${rcwd}" ;;
+esac
+echo docker run -it --rm \
+     ${WORKDIR} ${CONFIG_MOUNT} \
+     -v${SCRIPTDIR}:${PACKAGE_DIR}:z ${SECRETS_ARGS} ${IMAGE} "$@"
+docker run -it --rm \
+     ${WORKDIR} ${CONFIG_MOUNT} \
+     -v${SCRIPTDIR}:${PACKAGE_DIR}:z ${SECRETS_ARGS} ${IMAGE} "$@"
+
+
+

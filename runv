@@ -1,0 +1,331 @@
+#!/bin/bash
+PROG=runv
+DESC="Run the amiemediator in a virtual environment"
+USAGE1="$PROG [-S|--silent] [-p|--provider-package=provider_dir] command..."
+USAGE2="$PROG -D|--debug [-p|--provider-package=provider_dir] command..."
+USAGE3="$PROG -H|--help"
+HELP_TEXT="
+        This script runs the indicated command in a python virtual environment
+        that is initialized to be similar to the \"/ncar/amiemediator\"
+        container environment. This is useful when running python in an IDE
+        to debug amiemediator and/or local service provider code.
+
+        The script will look for a number of files to guide the setup of the
+        virtual environment. It will search the directory containing this script
+        first, then the \"provider package\" directory if one is specified. It
+        will search for a \"./venv.rc\" file, a \"../pip-packages\" file, a
+        \"./pip-packages\" file, and a \"./config.ini\" file.
+
+        The \"venv.rc\" files, if found, are assumed to contain sh-compatible
+        definitions for environment variables; the files are sourced and for
+        every line that looks like a variable assignment, the variable name is
+        extracted and the variable exported.
+
+        The \"pip-packages\" files are assumed to contain the names of required
+        PIP packages, one per line. After the \"venv.rc\" files are processed,
+        a virtual environment directory is initialized and any PIP packages
+        listed in the \"pip-packages\" files are installed within it.
+
+        The \"config.ini\" is the default configuration file for amiemediator
+        applications. If the \"CONFIG_INI\" environment variable is set, its
+        value will be used; otherwise, if the provider package directory
+        contains a \"config.ini\" file, that will be used. Otherwise, the
+        \"config.ini\" file in the \"amiemediator\" package directory will
+        be used.
+
+        If the \"VENV_DIR\" environment variable is set, its value will be used
+        as the name of the virtual environment directory. Otherwise, the name
+        will be \"venv\" under the amiemediator package directory; this
+        directory and its contents are excluded from git and docker processing
+        (see .gitignore and.dockerignore).
+
+        The following arguments are supported:
+
+        -P|--provider-dir=service_provider_dir
+            The alternate directory to be searched for \"venv.rc\",
+            \"pip-package\", and \"config.ini\" files
+
+        -S|--silent
+            Normally, ${PROG} prints messages describing its actions to
+            standard output; this option supresses these messages.
+
+        -D|--debug
+            If given, ${PROG} will print additinoal messages to standard
+            output to aid in debugging.
+
+        -H|--help
+            If given, the script will display help text for the \"${PROG}\"
+            script and quit.
+
+        -*
+            If any single-character option flags are given, they are assumed
+            to be options for the \"amie\" command.
+
+        command...
+            The command and arguments to be run in the virtual environment.
+            If not given, \"amie\" command is run without arguments.
+
+ENVIRONMENT
+        VENV_DIR
+            If set, the name of the virtual environment directory. Otherwise,
+            the name will be \"venv\" under the amiemediator package directory;
+            this directory and its contents are excluded from git and docker
+            processing (see .gitignore and.dockerignore).
+
+        AMIECLIENT_*
+        LOCALSITE_*
+        SECRETS_DIR
+            Environment variables used by the \"amie\" command.
+            
+"
+VECHO=echo
+DEBUG=:
+SCRIPTDIR=`cd \`dirname $0\`; /bin/pwd`
+#set -vx
+
+main() {
+    if [ ":${PACKAGE_DIR}" != ":" ] &&
+       is_dir_amiemediator_package_dir ${PACKAGE_DIR} ; then
+        :
+    elif is_dir_amiemediator_package_dir ${SCRIPTDIR} ; then
+        PACKAGE_DIR="${SCRIPTDIR}"
+        export PACKAGE_DIR
+    else
+        echo "${PROG}: cannot determine amiemediator package directory" >&2
+        exit 1
+    fi
+    PYTHONPYCACHEPREFIX=/tmp
+    PYTHONPATH=${PACKAGE_DIR}/src
+    export PYTHONPYCACHEPREFIX PYTHONPATH
+
+    SP_DIR=
+    COMMAND=
+    SEARCH_DIRS=
+    CMDLINE_SHIFT=`get_CMDLINE_SHIFT "$@"`
+    process_command_line "$@"
+    eval ${CMDLINE_SHIFT}
+    ${DEBUG} "After shifting, \$@=$@"
+    ${DEBUG} SP_DIR=${SP_DIR}
+    ${DEBUG} SEARCH_DIRS=${SEARCH_DIRS}
+    ${DEBUG} "args: $@"
+
+    load_environment_vars
+
+    initialize_venv
+
+    ensure_CONFIG_INI_is_set
+    ${VECHO} "CONFIG_INI=${CONFIG_INI}"
+
+    ${VECHO} "Activating virtual environment..."
+    source ${ACTIVATE}
+
+    ${VECHO} "Running ${COMMAND} $@..."
+    ${COMMAND} "$@"
+}
+
+is_dir_amiemediator_package_dir() {
+    if [ -f ${1}/config.ini ] &&
+       [ -f ${1}/pip-packages ] &&
+       [ -f ${1}/bin/amie ] ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+get_CMDLINE_SHIFT() {
+    CMDLINE_SHIFT=:
+    while [ $# != 0 ] ; do
+        arg="$1"
+        shift
+        case $arg in
+            -P)
+                shift
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift ; shift" ;;
+            -[SDHP]*)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift" ;;
+            --silent)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift" ;;
+            --debug)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift" ;;
+            --provider_dir=*)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift" ;;
+            --help)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift" ;;
+            -*)
+                break ;;
+            *)
+                CMDLINE_SHIFT="${CMDLINE_SHIFT} ; shift"
+                break ;;
+        esac
+    done
+    echo ${CMDLINE_SHIFT}
+}
+
+process_command_line() {
+    DEBUG=:
+    COMMAND=${PACKAGE_DIR}/bin/amie
+    while [ $# != 0 ] ; do
+        case $1 in
+            -h|--help)
+                cat <<EOF
+NAME
+        ${PROG} - ${DESC}
+
+SYNOPSIS
+        ${USAGE1}
+        ${USAGE2}
+        ${USAGE3}
+
+DESCRIPTION${HELP_TEXT}
+EOF
+                exit 0 ;;
+            -P?*)
+                opt=`expr "$1" : '-\(.\).*'`
+                arg=`expr "$1" : '-.\(.*\)'`
+                shift
+                set : -${opt} ${arg} "$@"
+                shift ;;
+            -[SDH]?*)
+                opt=`expr "$1" : '-\(.\)*'`
+                otheropts=`expr "$1" : '-.\(.*\)'`
+                shift
+                set : -${opt} -${otheropts} "$@"
+                shift ;;
+            -P)
+                SP_DIR=$2
+                shift
+                shift ;;
+            --provider-dir=*)
+                SP_DIR=`expr "$1" : '--provider-dir=\(.*\)'`
+                shift ;;
+            -D|--debug)
+                DEBUG="echo DEBUG"
+                shift ;;
+            -S|--silent)
+                VECHO=":"
+                shift ;;
+            -*)
+                COMMAND=${PACKAGE_DIR}/bin/amie
+                break ;;
+            amie)
+                COMMAND=${PACKAGE_DIR}/bin/amie
+                shift
+                break ;;
+            *)
+                COMMAND=$1
+                shift
+                break ;;
+        esac
+    done
+    SEARCH_DIRS="${PACKAGE_DIR}"
+    if [ ":${SP_DIR}" != ":" ] ; then
+        if [ ! -d ${SP_DIR} ] ; then
+            echo "${PROG}: '${SP_DIR}' is not a directory" >&2
+            exit 1
+        fi
+        SP_DIR=`cd ${SP_DIR}; /bin/pwd`
+        SEARCH_DIRS="${SEARCH_DIRS} ${SP_DIR}"
+    fi
+}
+
+load_environment_vars() {
+    ${VECHO} "Loading environment variables..."
+    for dir in ${SEARCH_DIRS} ; do
+        envfile="${dir}/venv.rc"
+        if [ -f ${envfile} ] ; then
+            load_envfile "${envfile}"
+        fi
+    done
+
+}
+
+load_envfile() {
+    envvars=`sed -n -e 's/^[ 	]*\([_a-zA-Z][_a-zA-Z0-9]*\)=.*/\1/p' ${1}`
+    . ${1}
+    export ${envvars}
+    ${VECHO} "Exported:"
+    for envvar in ${envvars} ; do
+        eval val=\"\$\{"${envvar}"\}\"
+        ${VECHO} "    ${envvar}=${val}"
+    done
+}
+
+initialize_venv() {
+    if [ ! -d ${VENV_DIR} ] || [ ! -f ${VENV_DIR}/pyvenv.cfg ] ; then
+        ${VECHO} "Initializing ${VENV_DIR}..."
+        python -m venv ${VENV_DIR} || exit 1
+
+        initialize_python_vars
+
+        ${PYTHON} -m pip install -q --upgrade pip
+        NEEDED_PACKAGES=`identify_needed_packages`
+        ${DEBUG} "NEEDED_PACKAGES=${NEEDED_PACKAGES}"
+        install_packages ${NEEDED_PACKAGES}
+    else
+        ${VECHO} "Using existing ${VENV_DIR}..."
+        initialize_python_vars
+    fi
+}
+
+initialize_python_vars() {
+    PYTHON="${VENV_DIR}/bin/python"
+    PIP="${VENV_DIR}/bin/pip3"
+    ACTIVATE="${VENV_DIR}/bin/activate"
+}
+
+identify_needed_packages() {
+    PFILES=
+    for d in ${SEARCH_DIRS} ; do
+        if [ -f ${d}/../pip-packages ] ; then
+            PFILES="${PFILES} ${d}/../pip-packages"
+        fi
+        if [ -f ${d}/pip-packages ] ; then
+            PFILES="${PFILES} ${d}/pip-packages"
+        fi
+    done
+    sed -e '/^#.*/d' -e '/^ *$/d' ${PFILES}
+}
+
+install_packages() {
+    ${VECHO} "Installing needed packages..."
+    INSTALLED_PACKAGES=`${PIP} list | sed -n -e '1,2d' -e 's/^\([^ ]*\).*/\1/p'`
+    for pkg in "$@" ; do
+        install_package ${pkg}
+    done
+}
+
+install_package() {
+    pkg=$1
+    for installed in INSTALLED_PACKAGES ; do
+        if [ ":${pkg}" = "${installed}" ] ; then
+            return
+        fi
+    done
+    ${PIP} -q install ${pkg}
+}
+
+ensure_CONFIG_INI_is_set() {
+    if [ ":${CONFIG_INI}" != ":" ] ; then
+        return
+    fi
+    if [ ":${SP_DIR}" != ":" ] && [ -f "${SP_DIR}/config.ini" ] ; then
+        CONFIG_INI="${SP_DIR}/config.ini"
+        export CONFIG_INI
+        return
+    fi
+    if [ ":${SP_DIR}" != ":" ] && [ -f "${SP_DIR}/../config.ini" ] ; then
+        dir=`cd ${SP_DIR}/.. ; /bin/pwd`
+        CONFIG_INI="${dir}/config.ini"
+        export CONFIG_INI
+        return
+    fi
+    if [ ":${PACKAGE_DIR}" != ":" ] && [ -f "${PACKAGE_DIR}/config.ini" ] ; then
+        CONFIG_INI="${PACKAGE_DIR}/config.ini"
+        export CONFIG_INI
+        return
+    fi
+}
+
+main "$@"
+exit 0

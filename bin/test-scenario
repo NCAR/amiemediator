@@ -1,0 +1,181 @@
+#!/usr/bin/env python
+import sys, os, getopt, logging
+import requests
+import pprintpp
+pprintpp.monkeypatch()
+import pprint
+from pathlib import Path
+from config import ConfigLoader
+from miscfuncs import truthy
+from amieclient import AMIEClient
+from serviceprovider import ServiceProvider
+from mediator import AMIEMediator
+
+PROG = "test-scenario"
+DESC = "Create or reset an AMIE API test scenario"
+USAGE = os.environ.get('USAGE',None)
+USAGE1 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] scenario"
+USAGE2 = PROG + " -h|--help"
+USAGE = f'''Usage: {USAGE1}
+         or
+       {USAGE2}'''
+
+AMIE_TEST_URL = "https://a3mdev.xsede.org/amie-api-test"
+SCENARIOS = [
+    "request_project_reactivate",
+    "request_account_reactivate",
+    "request_person_merge",
+    "request_user_modify"
+    ]
+SCENARIOS_HELP_LIST = "\n                      ".join(SCENARIOS)
+
+HELP_TEXT = f'''
+The "AMIE-API-Testing.pdf" document describes how to test your site's AMIE
+code using a set of "test scenarios". This utility will create a test scenario
+as described in the document, or reset test data.
+
+The -c|--configuration and -s|--site arguments are treated just as the
+bin/amie program treats them. Run "amie --help" for more details.
+
+  -c|--configfile : Configuration ("ini") file. If not specified, the
+                    "CONFIG_INI" environment variable will be checked for the
+                    name of a file; otherwise, "./config.ini" is assumed.
+                    The "amie_url" parameter in the "[amieclient]" must be
+                    "{AMIE_TEST_URL}".
+  -s|--site       : Local site name. If not specified, the configuration
+                    file must have a "site" property in a "[amieclient]"
+                    section.
+  -h|--help       : Display help test and quit
+  scenario        : The name of the test scenario to create, or the word
+                    "reset". Known test scenarios are:
+                      {SCENARIOS_HELP_LIST}
+    '''
+
+envUSAGE = os.environ.get('USAGE',None)
+if envUSAGE is not None:
+    USAGE = envUSAGE
+
+envHELP_TEXT = os.environ.get('HELP_TEXT',None)
+if envHELP_TEXT is not None:
+    HELP_TEXT = envHELP_TEXT
+
+def help():
+    help_text = f'''
+{PROG}: {DESC}
+{USAGE}
+
+{HELP_TEXT}
+    '''
+    print(help_text)
+
+def main(argv):
+    run_info = process_command_line_and_configuration(argv)
+
+    combined_config = run_info['config']
+    scenario = run_info['scenario']
+    amie_config = combined_config['amieclient']
+    if amie_config['amie_url'] != AMIE_TEST_URL:
+        prog_err('[amieconfig] amie_url parameter must be:\n    '+\
+                 AMIE_TEST_URL)
+        sys.exit(3)
+    
+    site = amie_config['site_name']
+    api_key = amie_config['api_key']
+
+
+    url = AMIE_TEST_URL + '/test/' + site + '/'
+    if scenario == 'reset':
+        url = url + 'reset'
+    else:
+        url = url + 'scenarios?type=' + scenario
+
+    post(site, api_key, url)
+
+    sys.exit(0)
+
+def process_command_line_and_configuration(argv):
+    run_info = process_command_line(argv)
+    configfile = run_info['configfile']
+    site = run_info['site']
+
+    config = ConfigLoader.loadConfig(configfile)
+    if site is not None:
+        config['amieclient']['site_name'] = site;
+
+    run_info['config'] = config
+    run_info['site'] = site
+
+    return run_info
+
+def process_command_line(argv):
+    argv.pop(0)
+    configfile = os.environ.get('CONFIG_INI','config.ini')
+    site = None
+
+    try:
+        opts,args = getopt.getopt(argv,"hc:s:",
+                                  [
+                                      "help",
+                                      "configfile=",
+                                      "site="])
+    except getopt.GetoptError as e:
+        prog_err(e)
+        print_err(USAGE)
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h","--help"):
+            help()
+            sys.exit(0)
+        elif opt in ("-c","--configfile"):
+            configfile = arg
+        elif opt in ("-s","--site"):
+            site = arg
+
+    if not Path(configfile).is_file():
+        prog_err(configfile + ": no such file")
+        sys.exit(2)
+
+    if len(args) == 0:
+        prog_err("scenario name (or 'reset') argument is required")
+        sys.exit(2)
+
+    scenario = args[0]
+    if scenario != "reset":
+        valid_scenario = None
+        for s in SCENARIOS:
+            if scenario == s:
+                valid_scenario = s
+                break
+        if not valid_scenario:
+            prog_err("scenario name '"+scenario+"' is invalid")
+            sys.exit(2)
+    
+
+    return {
+        'configfile': configfile,
+        'site': site,
+        'scenario': scenario
+    }
+    
+def print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def prog_err(*args, **kwargs):
+    sys.stderr.write(PROG + ": ")
+    print_err(*args, **kwargs)
+
+def post(site, api_key, url):
+    global VERIFY_SSL
+    headers = {
+        'XA-Site': site,
+        'XA-API-Key': api_key
+    }
+
+    result = None
+    print("POSTing to "+url)
+    result = requests.post(url, headers=headers, data={}, timeout=60)
+    print("Status code = "+str(result.status_code))
+        
+if __name__ == '__main__':
+    main(sys.argv)

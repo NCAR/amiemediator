@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amiemediator"
+version = "0.0.1"
+authors = [
+  { name="George Williams", email="gwilliam@ucar.edu" },
+]
+description = "Mediator service for connecting AMIE to a local Service Provider"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    'sphinx',
+    'urllib3',
+    'amieclient @ git+https://github.com/XSEDE/amieclient.git',
+]
+[project.urls]
+"Homepage" = "https://github.com/NCAR/amiemediator"
+"AMIClient" = "https://github.com/XSEDE/amieclient"
+

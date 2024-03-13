@@ -1,0 +1,269 @@
+#!/usr/bin/env python
+import sys, os, getopt, logging
+import pprintpp
+pprintpp.monkeypatch()
+import pprint
+from pathlib import Path
+from config import ConfigLoader
+from miscfuncs import truthy
+from amieclient import AMIEClient
+from serviceprovider import ServiceProvider
+from mediator import AMIEMediator
+
+PROG = "amie"
+DESC = "Process AMIE packets with a custom Service Provider plugin"
+USAGE = os.environ.get('USAGE',None)
+USAGE1 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] [-o|--once]"
+USAGE2 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] -p|--persistent"
+USAGE3 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] --showconfig"
+USAGE4 = PROG + " -h|--help"
+USAGE = f'''Usage: {USAGE1}
+         or
+       {USAGE2}
+         or
+       {USAGE3}
+         or
+       {USAGE4}'''
+
+HELP_TEXT = f'''
+  -c|--configfile : Configuration ("ini") file. If not specified, the
+                    "CONFIG_INI" environment variable will be checked for the
+                    name of a file; otherwise, "./config.ini" is assumed. See
+                    Configuration below.
+  -s|--site       : Local site name. If not specified, the configuration
+                    file must have a "site" property in a "[amieclient]"
+                    section.
+  -o|--once       : Normally, {PROG} retrieves all in-progress packets
+                    from the AMIE server, processes them all to the extent
+                    that it can without waiting for the local service
+                    provider, and then repeats, indefinitely. The --once
+                    flag will run through the process once without
+                    repeating.
+  -p|--persistent : Normally, {PROG} will exit if the service provider
+                    encounters an error that is considered a temporary error
+                    that is not a simple timeout (e.g. a "Connection refused"
+                    error). The --persistent flag will cause {PROG} to
+                    keep retrying when it encounters this type of error. 
+  --showconfig    : Display the current configuration and exit.
+  -h|--help       : Display help test and quit
+
+    
+Configuration
+-------------
+The configuration should include at least a "[amieclient]" section, a
+"[localsite]" section, a "[logging]" section, and an "[mediator]" section.
+
+The "[amieclient]" section must have "amie_url" and "amie_key" keys, and
+can have a "site_name" key. The "[localsite]" section must have at least
+a "package" key and a "module" key, which identify the package and module
+that implements the local "Service Provider"; all other keys in the
+"[localsite]" section are unique to the Service Provider. Entries in the
+"[logging]" sections will be used to configure loggers. See Logging
+Configuration below. The "[mediator]" section contains various timing-related
+values and the location of the "snapshot" directory. Refer to comments in the
+sample ``config.ini`` at the top of the amiemediator package for details.
+
+Environment variables with names beginning with "AMIECLIENT_" or
+"LOCALSITE_" are treated as "secret" configuration variables that can be
+interpolated: the name of the configuration variable is the environment
+variable name converted to local case. For example, the environment
+variable "AMIECLIENT_API_KEY" would become the configuration key
+"amieclient_api_key". This allows secrets to be specified in the
+environment and accessed via interpolation without storing them in the
+configuration file itself.
+
+If the environment variable "SECRETS_DIR" is defined and it names a
+directory, that directory is searched for files with names beginning with
+"amieclient_" and "localsite_". The contents of those files are also treated as
+secret configuration values. The "AMIECLIENT_" and "LOCALSITE_" environment
+variables have precedence over SECRETS_DIR files.
+
+Logging Configuration
+---------------------
+In the "logging" section, entries with keys having no embedded '.' characters
+are passed directly to ``logging.basicConfig()``. However, only the "filename",
+"filemode", "format", "datefmt", "style", "level", and "encoding" keywords are
+supported. Other keys are split at the last '.'; the first substring is taken
+as the name of a logger, and the second must be one of the same
+``logging.basicConfig()`` keywords or "propagate" (which must be a boolean).
+For example, "mediator.level" would identify the "level" value for a logger
+named "mediator". All loggers referenced in this way are configured during
+runtime initialization.
+    '''
+
+envUSAGE = os.environ.get('USAGE',None)
+if envUSAGE is not None:
+    USAGE = envUSAGE
+
+envHELP_TEXT = os.environ.get('HELP_TEXT',None)
+if envHELP_TEXT is not None:
+    HELP_TEXT = envHELP_TEXT
+
+def help():
+    help_text = f'''
+{PROG}: {DESC}
+{USAGE}
+
+{HELP_TEXT}
+    '''
+    print(help_text)
+
+def main(argv):
+    run_info = process_command_line_and_configuration(argv)
+
+    once = run_info['once']
+    persistent = run_info['persistent']
+    showconfig = run_info['showconfig']
+    combined_config = run_info['config']
+    if showconfig:
+        pp = pprint.PrettyPrinter(indent=4)
+        print(pp.pprint(combined_config))
+        sys.exit(0)
+
+    amie_config = combined_config['amieclient']
+    localsite_config = combined_config['localsite']
+    logging_config = combined_config['logging']
+    mediator_config = combined_config['mediator']
+
+    configure_logging(**logging_config)
+
+    logger = logging.getLogger(None)
+
+    logger.info('Starting ')
+
+    try:
+        amie_client = AMIEClient(amie_config['site_name'],
+                                 amie_config['api_key'],
+                                 amie_config['amie_url'],
+                                 )
+
+        service_provider = ServiceProvider()
+        service_provider.apply_config(localsite_config)
+
+        mediator = AMIEMediator(mediator_config, amie_client, service_provider)
+
+        if once:
+            mediator.run()
+        elif persistent:
+            mediator.run_loop_persistently()
+        else:
+            mediator.run_loop()
+
+    except Exception as e:
+        logger.exception("Exception occurred")
+
+    logger.info('Exiting ' + PROG)
+
+def process_command_line_and_configuration(argv):
+    run_info = process_command_line(argv)
+    configfile = run_info['configfile']
+    site = run_info['site']
+
+    config = ConfigLoader.loadConfig(configfile)
+    if site is not None:
+        config['amieclient']['site_name'] = site;
+
+    run_info['config'] = config
+
+    return run_info
+
+def process_command_line(argv):
+    argv.pop(0)
+    configfile = os.environ.get('CONFIG_INI','config.ini')
+    site = None
+    once = False
+    persistent = False
+    showconfig = False
+    try:
+        opts,args = getopt.getopt(argv,"hopc:s:",
+                                  [
+                                      "help",
+                                      "once",
+                                      "persistent",
+                                      "configfile=",
+                                      "site=",
+                                      "showconfig"])
+    except getopt.GetoptError as e:
+        prog_err(e)
+        print_err(USAGE)
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h","--help"):
+            help()
+            sys.exit(0)
+        elif opt in ("-c","--configfile"):
+            configfile = arg
+        elif opt in ("-s","--site"):
+            site = arg
+        elif opt in ("-o","--once"):
+            once = True
+        elif opt in ("-p","--persistent"):
+            persistent = True
+        elif opt in ("--showconfig"):
+            showconfig = True
+
+    if not Path(configfile).is_file():
+        prog_err(configfile + ": no such file")
+        sys.exit(2)
+
+    return {
+        'configfile': configfile,
+        'site': site,
+        'once': once,
+        'persistent': persistent,
+        'showconfig': showconfig
+    }
+
+
+def configure_logging(**config):
+    rootconfig = dict()
+    subconfigs = dict()
+    for key in config.keys():
+        value = config[key]
+        idx = key.rfind('.')
+        if idx > 0:
+            path = key[0:idx]
+            ckey = key[idx+1:]
+            subconfig = subconfigs.get(path,None)
+            if subconfig is None:
+                subconfig = dict()
+                subconfigs[path] = subconfig
+            subconfig[ckey] = value
+        else:
+            rootconfig[key] = value
+
+    if rootconfig:
+        logging.basicConfig(**rootconfig)
+    for path in subconfigs.keys():
+        subconfig = subconfigs[path]
+        configure_logger(path,subconfig)
+
+def configure_logger(name, config):
+    logger = logging.getLogger(name)
+    logger.propagate = truthy(config.get('propagate',"True"))
+    filename = config.get('filename',None)
+    if filename is not None:
+        filemode = config.get('filemode','a')
+        encoding = config.get('encoding',None)
+        handler = logging.FileHandler(filename,mode=filemode,encoding=encoding)
+        format = config.get('format',None)
+        datefmt = config.get('datefmt',None)
+        style = config.get('style','%')
+        formatter = logging.Formatter(fmt=format, datefmt=datefmt, style=style)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    level = config.get('level',None)
+    if level:
+        logger.setLevel(level)
+    
+    
+def print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def prog_err(*args, **kwargs):
+    sys.stderr.write(PROG + ": ")
+    print_err(*args, **kwargs)
+
+if __name__ == '__main__':
+    main(sys.argv)
