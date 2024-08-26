@@ -66,9 +66,10 @@ class TestTaskStatus(unittest.TestCase):
         self.testtime_s = "2023-01-01T12:00:00-07:00"
         self.testtime = datetime.fromisoformat(self.testtime_s);
         self.dictparms = {
-            'job_id': "Tmyatid:myaprid",
+            'amie_packet_type': "test_type",
+            'job_id': "myatid:mypid",
             'amie_transaction_id': "myatid",
-            'amie_packet_rec_id': "myaprid",
+            'amie_packet_id': "mypid",
             'task_name': "mytaskname",
             'task_state': "queued",
             'timestamp': self.testtime,
@@ -163,12 +164,12 @@ class TestTaskStatus(unittest.TestCase):
     def validate_instance(self,ts):
         self.assertTrue(isinstance(ts,TaskStatus))
         self.assertTrue(isinstance(ts,dict))
-        self.assertEqual(ts['job_id'],"Tmyatid:myaprid",
+        self.assertEqual(ts['job_id'],"myatid:mypid",
                          msg="task_name not passed in")
         self.assertEqual(ts['amie_transaction_id'],"myatid",
                          msg="amie_transaction_id not passed in")
-        self.assertEqual(ts['amie_packet_rec_id'],"myaprid",
-                         msg="amie_packet_rec_id not passed in")
+        self.assertEqual(ts['amie_packet_id'],"mypid",
+                         msg="amie_packet_id not passed in")
         self.assertEqual(ts['task_name'],"mytaskname",
                          msg="task_name not passed in")
         self.assertEqual(ts['timestamp'],self.testtime_s,
@@ -190,25 +191,28 @@ class TestTaskStatusList(unittest.TestCase):
     def setUp(self):
         self.ts_data = [
             {
-                'job_id': 'T123456:TGCDE:TGCDE:NCAR:4567890',
+                'amie_packet_type': 'test_type',
+                'job_id': '123456:TGCDE:TGCDE:NCAR:4567890',
                 'amie_transaction_id': '123456:TGCDE:TGCDE:NCAR',
-                'amie_packet_rec_id': '4567890',
+                'amie_packet_id': '4567890',
                 'task_name': 'my_task1',
                 'task_state': 'successful',
                 'timestamp': DateTime("2023-08-02T15:20:00-06:00"),
             },
             {
-                'job_id': 'T123456:TGCDE:TGCDE:NCAR:4567892',
+                'amie_packet_type': 'test_type',
+                'job_id': '123456:TGCDE:TGCDE:NCAR:4567892',
                 'amie_transaction_id': '123456:TGCDE:TGCDE:NCAR',
-                'amie_packet_rec_id': '4567892',
+                'amie_packet_id': '4567892',
                 'task_name': 'my_task3',
                 'task_state': 'in-progress',
                 'timestamp': DateTime("2023-08-02T15:20:02-06:00"),
             },
             {
-                'job_id': 'T123456:TGCDE:TGCDE:NCAR:4567891',
+                'amie_packet_type': 'test_type',
+                'job_id': '123456:TGCDE:TGCDE:NCAR:4567891',
                 'amie_transaction_id': '123456:TGCDE:TGCDE:NCAR',
-                'amie_packet_rec_id': '4567891',
+                'amie_packet_id': '4567891',
                 'task_name': 'my_task2',
                 'task_state': 'successful',
                 'timestamp': DateTime("2023-08-02T15:20:01-06:00"),
@@ -308,13 +312,8 @@ class TestTaskStatusList(unittest.TestCase):
 
     def test_get_amie_transaction_ids(self):
         tsl = TaskStatusList(self.ts_data)
-        atrids = tsl.get_amie_transaction_ids()
-        self.assertTrue(isinstance(atrids,set),
-                        msg='set not returned')
-        self.assertEqual(len(atrids),1,
-                         msg='wrong number of transaction ids returned')
-        for atrid in atrids:
-            self.assertEqual(atrid,"123456:TGCDE:TGCDE:NCAR")
+        atrid = tsl.get_amie_transaction_id()
+        self.assertEqual(atrid,"123456:TGCDE:TGCDE:NCAR")
                                    
     
 if __name__ == '__main__':

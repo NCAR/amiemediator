@@ -4,7 +4,10 @@ from fixtures.request_account_create import RAC_PKT_1
 from fixtures.request_project_create import RPC_PKT_1
 from amieclient.packet.base import Packet
 from parmdesc import ParmDescAware
-from amieparms import (get_packet_keys, strip_key_prefix,  AMIEParmDescAware)
+from amieparms import (get_packet_keys,
+                       parse_atrid,
+                       strip_key_prefix,
+                       AMIEParmDescAware)
 
 class TestParmDesc(unittest.TestCase):
         
@@ -28,26 +31,17 @@ class TestParmDesc(unittest.TestCase):
         os = packet.originating_site_name
         rs = packet.remote_site_name
         ls = packet.local_site_name
-        prid = packet.packet_rec_id
-        expected_jid = f"T{os}:{rs}:{ls}:{tid}:{prid}"
         expected_atrid = f"{os}:{rs}:{ls}:{tid}"
-        expected_aprid = str(packet.packet_rec_id)
-        jid, atrid, aprid = get_packet_keys(packet)
+        expected_job_id = str(packet.packet_rec_id)
+        expected_pid = str(packet.packet_id)
+        job_id, atrid, pid = get_packet_keys(packet)
 
-        self.assertEqual(expected_jid,jid,
-                         msg="AMIE Packet did not yield expected key")
+        self.assertEqual(expected_job_id,job_id,
+                         msg="AMIE Packet did not yield expected job_id")
         self.assertEqual(expected_atrid,atrid,
                          msg="AMIE Packet did not yield expected atrid")
-        self.assertEqual(expected_aprid,aprid,
-                         msg="AMIE Packet did not yield expected aprid")
-
-        jid, atrid, aprid = get_packet_keys(packet_dict)
-        self.assertEqual(expected_jid,jid,
-                         msg="AMIE Packet dict did not yield expected key")
-        self.assertEqual(expected_atrid,atrid,
-                         msg="AMIE Packet did not yield expected atrid")
-        self.assertEqual(expected_aprid,aprid,
-                         msg="AMIE Packet did not yield expected aprid")
+        self.assertEqual(expected_pid,pid,
+                         msg="AMIE Packet did not yield expected pid")
 
         packet_dict = RPC_PKT_1
         packet = Packet.from_dict(packet_dict)
@@ -57,33 +51,42 @@ class TestParmDesc(unittest.TestCase):
         ls = packet.local_site_name
         prid = packet.packet_rec_id
         rid = packet.RecordID
-        expected_jid = "R"+str(packet.RecordID)
         expected_atrid = f"{os}:{rs}:{ls}:{tid}"
-        expected_aprid = str(packet.packet_rec_id)
-        jid, atrid, aprid = get_packet_keys(packet)
+        expected_job_id = str(packet.packet_rec_id)
+        expected_pid = str(packet.packet_id)
+        job_id, atrid, pid = get_packet_keys(packet)
 
-        self.assertEqual(expected_jid,jid,
-                         msg="AMIE Packet did not yield expected key")
-        jid, atrid, aprid = get_packet_keys(packet_dict)
-        self.assertEqual(expected_jid,jid,
-                         msg="AMIE Packet dict did not yield expected key")
+        self.assertEqual(expected_job_d,job_id,
+                         msg="AMIE Packet did not yield expected job_id")
         self.assertEqual(expected_atrid,atrid,
                          msg="AMIE Packet did not yield expected atrid")
-        self.assertEqual(expected_aprid,aprid,
-                         msg="AMIE Packet did not yield expected aprid")
+        self.assertEqual(expected_pid,pid,
+                         msg="AMIE Packet did not yield expected pid")
 
         nonpacket_dict = {
-            'job_id': 'R12345',
-            'amie_transaction_id': 'ATRID',
-            'amie_packet_rec_id': 'APRID',
+            'job_id': '12345',
+            'amie_transaction_id': 'os:rs:ls:tid',
+            'packet_id': 'PID',
             }
-        jid, atrid, aprid = get_packet_keys(nonpacket_dict)
-        self.assertEqual(nonpacket_dict['job_id'], jid,
-                         msg="non-Packet dict did not yield expected key")
+        job_id, atrid, pid = get_packet_keys(nonpacket_dict)
+        self.assertEqual(nonpacket_dict['job_id'], job_id,
+                         msg="non-Packet dict did not yield expected job_id")
         self.assertEqual(nonpacket_dict['amie_transaction_id'],atrid,
                          msg="AMIE Packet did not yield expected atrid")
-        self.assertEqual(nonpacket_dict['amie_packet_rec_id'],aprid,
-                         msg="AMIE Packet did not yield expected aprid")
+        self.assertEqual(nonpacket_dict['packet_id'],pid,
+                         msg="AMIE Packet did not yield expected pid")
+
+    def test_parse_atrid(self):
+        atrid = 'OS:RS:LS:TID'
+        os, rs, ls, tid = parse_atrid(atrid)
+        self.assertEqual(os,"OS",
+                         msg="parse_atrid did not extract expected os")
+        self.assertEqual(rs,"RS",
+                         msg="parse_atrid did not extract expected rs")
+        self.assertEqual(ls,"LS",
+                         msg="parse_atrid did not extract expected ls")
+        self.assertEqual(tid,"TID",
+                         msg="parse_atrid did not extract expected tid")
 
     def test_strip_key_prefix(self):
         in_dict={

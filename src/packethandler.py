@@ -6,14 +6,15 @@ from logdumper import LogDumper
 from misctypes import DateTime
 from miscfuncs import to_expanded_string
 from amieparms import (get_packet_keys, strip_key_prefix)
-from serviceprovider import (ServiceProviderRequestFailed, ServiceProviderError,
-                             ServiceProvider, SPSession)
+from spexception import (ServiceProviderRequestFailed, ServiceProviderError)
+from serviceprovider import (ServiceProvider, SPSession)
 from organization import AMIEOrg
 from person import AMIEPerson
 from taskstatus import (TaskStatus, TaskStatusList)
 from actionablepacket import ActionablePacket
 import handler
 
+    
 class PacketHandlerError(Exception):
     pass
 
@@ -44,11 +45,12 @@ class ServiceProviderAdapter(object):
 
     def _create_new_task(self, task_name, apacket) -> TaskStatus:
             
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         ts_parms = {
+            'amie_packet_type': apacket['amie_packet_type'],
             'job_id': jid,
             'amie_transaction_id': apacket['amie_transaction_id'],
-            'amie_packet_rec_id': apacket['amie_packet_rec_id'],
+            'amie_packet_id': apacket['amie_packet_id'],
             'task_name': task_name,
             'timestamp': int(DateTime.now().timestamp()*1000),
             'task_state': 'nascent',
@@ -161,6 +163,27 @@ class ServiceProviderAdapter(object):
             lcprefix = prefix.lower()
             person_key = lcprefix + "_person_id"
             apacket[person_key] = person_id
+        return ts
+
+    def update_person_DNs(self, apacket, prefix) -> TaskStatus:
+        """Get the TaskStatus object from ServiceProvider.update_person_DNs()
+
+        :param apacket: An "ActionablePacket"
+        :type apacket: dict 
+        :param prefix: The prefix string to strip from keys ("User" or "Pi").
+        :type prefix: str
+        :return: A TaskStatus object from the ServiceProvider task.
+        """
+
+        ts = self._get_task_by_method_name("update_person_DNs", apacket)
+        if ts['task_state'] == 'nascent':
+            request_data = self._init_task_data(ts, apacket, prefix)
+
+            with SPSession() as sp:
+                ts = sp.update_person_DNs(**request_data)
+            apacket.add_or_update_task(ts)
+
+        self._check_task_status_for_errors(ts)
         return ts
 
     def activate_person(self, apacket, prefix) -> TaskStatus:
@@ -514,13 +537,16 @@ class ServiceProviderAdapter(object):
             raise ServiceProviderError(message)
         return
 
-_handler_class_map = {}
+
+_handler_map = {}
 
 class PacketHandler(ABC):
     
     def __init_subclass__(cls, packet_type, **kwargs):
         super().__init_subclass__(**kwargs)
-        _handler_class_map[packet_type] = cls
+        handler = cls()
+        cls.singleton = handler
+        _handler_map[packet_type] = handler
 
     @classmethod
     def initialize_handlers(cls):
@@ -530,12 +556,10 @@ class PacketHandler(ABC):
 
     @classmethod
     def get_handler(cls, packet_type):
-        handler_class = _handler_class_map.get(packet_type)
-        if handler_class is None:
-            return _handler_class_map.get('DEFAULT')
-        if not hasattr(handler_class,"singleton"):
-            handler_class.singleton = handler_class()
-        return handler_class.singleton
+        handler = _handler_map.get(packet_type,None)
+        if handler is None:
+            handler = DefaultHandler.singleton
+        return handler
 
     def __init__(self):
         """Object that handles ServiceProvider interactions for an Packet"""
@@ -545,7 +569,6 @@ class PacketHandler(ABC):
         self.logdumper = LogDumper(self.logger)
         self.sp_adapter = ServiceProviderAdapter()
 
-    
     @abstractmethod
     def work(self, actionable_packet):
         """Do all that can be done with a packet without waiting
@@ -571,6 +594,9 @@ class PacketHandler(ABC):
 
 class DefaultHandler(PacketHandler, packet_type="DEFAULT"):
 
+    def initial_transaction_packet(self):
+        return True
+
     def work(self, apacket):
         """Handle an unsupported packet
 
@@ -580,7 +606,8 @@ class DefaultHandler(PacketHandler, packet_type="DEFAULT"):
         """
 
         packet = apacket['amie_packet']
-        pt = packet.packet_type
+        pt = packet.__class__._packet_type
         msg = f"{pt} not implemented"
-        reply_packet = packet.reply_with_failure(message=msg)
+        rp = ActionablePacket.create_failure_reply(packet, message=msg)
+        return rp
 

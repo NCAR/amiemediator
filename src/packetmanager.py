@@ -1,25 +1,19 @@
 import logging
 from miscfuncs import (Prettifiable, pformat, to_expanded_string)
 from logdumper import LogDumper
-from datetime import datetime
 from snapshot import Snapshots
-from amieclient import AMIEClient
 from amieclient.packet.base import Packet as AMIEPacket
-from misctypes import DateTime
-from amieparms import get_packet_keys
-from taskstatus import (State, TaskStatus, TaskStatusList)
+from taskstatus import (State, TaskStatus)
 from actionablepacket import ActionablePacket
 from packethandler import (PacketHandlerError, PacketHandler)
 from spexception import (ServiceProviderTimeout, ServiceProviderRequestFailed)
-from transactionstates import TransactionStates
-                         
 
 SNAPSHOT_DFLT_KEYS = [
     'job_id',
-    'packet_type',
+    'amie_packet_type',
     'amie_packet_timestamp',
     'amie_transaction_id',
-    'amie_packet_rec_id',
+    'amie_packet_id',
     'timestamp',
     'tasks'
 ]
@@ -36,26 +30,18 @@ SNAPSHOT_DFLT_TASK_KEYS = [
         
 class PacketManager(object):
 
-    def __init__(self, site_name, snapshot_dir, transaction_states):
-        """Coordinate the running of tasks to service AMIE packets
+    def __init__(self, snapshot_dir):
+        """Coordinate the running of tasks to service ActionablePackets
 
-        AMIE packets are converted to ``ActionablePacket`` objects, which are
-        associated with tasks (more specifically with
-        :class:`~taskstatus.TaskStatus` objects. The ``PacketManager``
-        maintains maps of ``ActionablePacket`` objects and ``TaskStatus``
-        objects and can cross-reference between the two.
-
-        Snapshots:
-        
-        In addition to an in-memory dictionary of ``ActionablePacket`` objects,
-        PacketManager maintains a directory with ActionablePacket "snapshots"
-        that are updated as the objects change. Snapshots are files containing
-        JSON-serialized ``ActionablePacket`` data. Snapshots are meant to
-        facilitate external monitoring of the AMIE mediator state. In
-        particular, snapshots are NOT used by the mediator itself to remember
-        the state of AMIE packets or ``ServiceProvider`` tasks; all persistent
-        state of this kind is the responsibility of the AMIE server and the
-        local ``ServiceProvider`` implementation.
+        In addition to passing ActionablePacket objects to individual handlers
+        to process tasks, PacketManager maintains a directory with
+        ActionablePacket "snapshots" that are updated as the objects change.
+        Snapshots are files containing JSON-serialized ``ActionablePacket``
+        data. Snapshots are meant to facilitate external monitoring of the AMIE
+        mediator state. In particular, snapshots are NOT used by the mediator
+        itself to remember the state of AMIE packets or ``ServiceProvider``
+        tasks; all persistent state of this kind is the responsibility of the
+        AMIE server and the local ``ServiceProvider`` implementation.
         
         Snapshots initially contain only the keys in
         :data:~packetmanager.SNAPSHOT_DFLT_KEYS` and not in
@@ -67,17 +53,19 @@ class PacketManager(object):
 
         :param site_name: the local site name
         :type site_name: str
+        :param transaction_manager: Repository of stored tasks and packets
+        :type site_name: TransactionManager
         :param snapshot_dir: the name of the directory for apacket snapshots
         :type site_name: str
-        :param transaction_states: Object for tracking state of transactions
-        :type site_name: TransactionStates
         
         """
 
-        self.site_name = site_name
+        self.snapshots = Snapshots(snapshot_dir, 'w')
+        
         self.packet_logger = logging.getLogger("amiepackets")
         self.logger = logging.getLogger(__name__)
         self.logdumper = LogDumper(self.logger)
+        
         # self.snapshot_data contains current data from ActionablePackets,
         # indexed by apacket.mk_name().
         # self.initial_snapshot_data contains complete serialized
@@ -86,160 +74,52 @@ class PacketManager(object):
         self.snapshot_data = {}
         self.initial_snapshot_data = {}
 
-        self.snapshots = Snapshots(snapshot_dir, 'w')
-
-        self.transaction_states = transaction_states
-
-        # TaskStatusLists indexed by job_id. It is possible for a TaskStatusList
-        # to temporarily exist without an ActionablePacket, but once an
-        # ActionablePacket with the same job_id exits, self.tasks[job_id] will
-        # reference the same TaskStatusList as apacket['tasks']
-        self.tasks = {}
-        
-        # ActionablePackets indexed by (amie_transaction_id,amie_packet_rec_id)
-        self.actionable_packets = {}
-
         PacketHandler.initialize_handlers()
 
-    def actionable_packet_count(self):
-        return len(self.actionable_packets)
+    def purge_actionable_packets(self, apackets):
+        """Delete all data related to the given ActionablePackets
 
-    
-    def refresh_packets(self, packets):
-        """Add/update the manager's set of packets from AMIE
-
-        If the AMIE packet does not have a corresponding ActionablePacket
-        object, create one. If any extant tasks no longer has a corresponding
-        AMIE packet, purge it. In additon, ensure snapshot files are up-to-date.
-
-        :param packets: List of serviceable AMIE packets
-        :type packets: list
+        :param apackets: Actionable packets
+        :type apackets: collection of ActionablePacket
         """
 
-        for packet in packets:
-            jid, atrid, aprid = get_packet_keys(packet)
-
-            packet_tasks = self.tasks.get(jid,None)
-
-            key = (atrid, aprid)
-            if key in self.actionable_packets:
-                apacket = self.actionable_packets[key]
-                apacket.update(packet, packet_tasks)
-                self.tasks[jid] = apacket['tasks']
-                self._update_snapshot(apacket)
-            else:
-                apacket = ActionablePacket(packet, packet_tasks)
-                self.logdumper.debug("Created ActionablePacket:",apacket)
-                self.actionable_packets[key] = apacket
-                self._add_apacket_to_snapshots(apacket)
-
-        self._purge_obsolete_task_transactions()
-            
-    def refresh_tasks(self, tasks):
-        """Add/update TaskStatus objects from the ServiceProvider
-
-        :param tasks: The TaskStatus objects to add/update
-        :type tasks: list
-        """
-
-        for task in tasks:
-            self.add_or_update_task(task)
-        
-    def add_or_update_task(self, task_status):
-        """Add/update a task in the appropriate ActionablePacket object
-
-        :param task_status: The task
-        :type task_status: TaskStatus
-        """
-        
-        jid, atrid, aprid = get_packet_keys(task_status)
-        key = (atrid, aprid)
-        apacket = self.actionable_packets.get(key, None)
-        if apacket is not None:
-            apacket.add_or_update_task(task_status)
-            self._update_snapshot(apacket)
-            return
-        tslist = self.tasks.get(jid, None)
-        if tslist is not None:
-            tslist.put(task_status)
-        else:
-            tslist = TaskStatusList(task_status)
-            self.tasks[jid] = tslist
-
-    def purge_transaction(self, amie_transaction_id):
-        """Delete all ActionablePacket data for the indicated transaction
-
-        :param amie_transaction_id: The AMIE transaction identifier
-        :type amie_transaction_id: str
-        """
-        keys = []
-        for key, apacket in self.actionable_packets.items():
-            atrid, aprid = key
-            if atrid == amie_transaction_id:
-                keys.append(key)
-        for key in keys:
-            apacket = self.actionable_packets[key]
-            del self.actionable_packets[key]
+        for apacket in apackets:
             self._delete_snapshot(apacket)
 
-    def service_actionable_packets(self) -> list:
-        """Pass all ActionablePacket objects to the appropriate packet handler
+    def service_actionable_packets(self, apackets) -> list:
+        """Pass ActionablePacket objects to the appropriate packet handler
 
         A packet handler will only work on a packet's tasks until it needs to
         wait for something, or until all tasks are completely done (successful
-        or not). If all tasks are done, a reply packet will be sent to AMIE.
-        In normal operation, this is called in a loop.
+        or not). If all tasks are done, a reply packet will be returned to be
+        sent to AMIE. In normal operation, this is called in a loop.
 
-        :return: List of AMIE packets to send back to AMIE
+        :param apackets: Actionable packets
+        :type apackets: collection of ActionablePacket
+        :return: List of amieclient.packet.base.Packet
         """
+        
         reply_packets = list()
-        actionable_packets = list(self.actionable_packets.values())
-        actionable_packets.sort(key=lambda ap: ap['amie_packet_timestamp'])
+        actionable_packets = list(apackets)
+        actionable_packets.sort(key=lambda ap: ap['timestamp'])
         amie_packet_expected = False
         for apacket in actionable_packets:
+            self._update_snapshot(apacket)
             reply_packet = self._service_actionable_packet(apacket)
             if reply_packet:
                 reply_packets.append(reply_packet)
                 self.logger.debug("ServiceManager processed apacket "+\
-                              "(job_id=" + apacket['job_id'] +\
-                                  "), got reply AMIEPacket from handler, type="+reply_packet.packet_type)
+                                  "(job_id=" + apacket['job_id'] +\
+                                  "), got reply AMIEPacket from handler," +\
+                                  "type=" + reply_packet.__class__._packet_type)
+            else:
+                self._update_snapshot(apacket)
         return reply_packets
-
-    def get_expected_task_update_flags(self):
-        # return (timely_updates_expected, updates_expected)
-        task_updates_expected = False
-        for tasklist in self.tasks.values():
-            for task in tasklist.get_list():
-                state = task['task_state']
-                if state == 'in-progress' or \
-                   state == 'delegated' or \
-                   state == 'syncing':
-                    return (True, True)
-                elif state == 'nascent' or \
-                     state == 'queued':
-                    task_updates_expected = True
-        return (False, task_updates_expected)
-
-    def _purge_obsolete_task_transactions(self) -> set:
-        if not self.actionable_packets:
-            # in case we haven't yet updated the set of actionable packets
-            return
-
-        target_atrids = set()
-        for tslist in self.tasks.values():
-            for ts in tslist.get_name_map().values():
-                target_atrids.add(ts['amie_transaction_id'])
-
-        for apacket in self.actionable_packets.values():
-            target_atrids.discard(apacket['amie_transaction_id'])
-
-        for atrid in target_atrids:
-            self.purge_transaction(atrid)
-
 
     def _service_actionable_packet(self, apacket):
         try:
-            self.logger.debug("Processing apacket: "+apacket.mk_name()+" ts="+str(apacket['timestamp']))
+            self.logger.debug("Processing apacket: "+apacket.mk_name()+" ts="+\
+                              str(apacket['timestamp']))
             reply_packet = self._handle_packet(apacket)
 
         except ServiceProviderTimeout as spto:
@@ -250,7 +130,7 @@ class PacketManager(object):
             self.logger.info(msg)
             raise spto
         except ServiceProviderRequestFailed as sprf:
-            return apacket['amie_packet'].reply_with_failure(message=str(sprf))
+            return apacket.create_failure_reply_packet(message=str(sprf))
         except Exception as err:
             msg = self._build_log_message(apacket,err)
             self.logger.info(msg)
@@ -260,7 +140,7 @@ class PacketManager(object):
 
     def _handle_packet(self, apacket):
         # Return reply Packet, or None if the apacket still has an active task
-        handler = PacketHandler.get_handler(apacket['packet_type'])
+        handler = PacketHandler.get_handler(apacket['amie_packet_type'])
         before_timestamp = apacket['timestamp']
         ts_or_reply_packet = handler.work(apacket)
         after_timestamp = apacket['timestamp']
@@ -277,8 +157,8 @@ class PacketManager(object):
                     ts['message']
                 raise PacketHandlerError(msg)
             elif task_state == 'failed':
-                packet = apacket['amie_packet']
-                return packet.reply_with_failure(message=ts['message'])
+                msg = ts['message']
+                return apacket.create_failure_reply_packet(message=msg)
             else:
                 self.logdumper.debug("handler returned unfinished task: ",ts)
             return None
@@ -352,8 +232,5 @@ class PacketManager(object):
         self.snapshots.delete(key)
 
     def _build_log_message(self, apacket, err):
-        m = "error while processing " + \
-            f"{apacket['packet_type']}." + \
-            f"{apacket['amie_transaction_id']}#" + \
-            f"{apacket['amie_packet_rec_id']}: " + str(err)
+        return "error while processing " + apacket.mk_name() + ": " + str(err)
 

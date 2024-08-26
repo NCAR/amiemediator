@@ -11,7 +11,7 @@ from misctypes import (DateTime, TimeUtil)
 from taskstatus import TaskStatus
 from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
-                    MergePerson)
+                    MergePerson, UpdatePersonDNs)
 from grant import (LookupGrant, ChooseOrAddGrant)
 from project import (LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
@@ -44,7 +44,8 @@ class ServiceProviderIF(ABC):
     the mediator code (see :class:`~mediator.AMIEMediator`) queries the
     ServiceProvider for its task data using the get_tasks() method, and this
     task data is expected to carry sufficient state for all other
-    ServiceProvider methods.
+    ServiceProvider methods. (But see description of "snapshots" in
+    ``packetmanager.PacketManager``.)
     """
 
     @abstractmethod
@@ -139,7 +140,7 @@ class ServiceProviderIF(ABC):
         
         :raises ServiceProviderError: if no implementation is configured
         :raises ServiceProviderTemporaryError: if a temporary error occurs
-        :return: A TaskStatus object, which should include a "OrgCode" product
+        :return: A TaskStatus object, which should include a "org_code" product
         """
 
         pass
@@ -170,6 +171,22 @@ class ServiceProviderIF(ABC):
         :raises ServiceProviderError: if no implementation is configured
         :raises ServiceProviderTemporaryError: if a temporary error occurs
         :return: A TaskStatus object, which should include a "PersonID" product
+        """
+
+        pass
+
+    @abstractmethod
+    def update_person_DNs(self, *args, **kwargs) -> TaskStatus:
+        """Activate an existing local person
+
+        Given the description, including a PersonID, of an existing but
+        inactive person, ensure the person is active.
+
+        Refer to :class:`~person.UpdatePersonDNs` for parameter info.
+        
+        :raises ServiceProviderError: if no implementation is configured
+        :raises ServiceProviderTemporaryError: if a temporary error occurs
+        :return: A TaskStatus object
         """
 
         pass
@@ -266,8 +283,13 @@ class ServiceProviderIF(ABC):
     def choose_or_add_project_name_base(self, *args, **kwargs) -> TaskStatus:
         """Choose a base name for a new project, or create a new one
 
-        Depending on the local site, this might be unnecessary; if so, return
-        an empty string as a "project_name_base" product.
+        If the local site implements project identifiers as "smart keys" (i.e.
+        names/keys with project metadata embedded in the value), this method
+        provides a means to finalize the definition of relevant metadata
+        objects used by the project name. For example, at NCAR, project codes
+        include short keys that identifies the facility and organization
+        of the project's PI; NCAR's implementation of this method ensures that
+        these short codes are defined properly.
         
         Refer to :class:`~project.ChooseOrAddProjectNameBase` for parameter
         info.
@@ -443,7 +465,7 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
 
     def get_local_task_name(self, method_name, *args, **kwargs) -> str:
         self._check_implem()
-        return self.implem.get_local_task_name(method_name, *args, *kwargs)
+        return self.implem.get_local_task_name(method_name, *args, **kwargs)
 
     def get_tasks(self, active=True, wait=None, since=None) -> list:
         self._check_implem()
@@ -479,6 +501,11 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
         self._check_implem()
         valid_kwargs = ChooseOrAddPerson(*args,**kwargs)
         return self.implem.choose_or_add_person(*args,**valid_kwargs)
+
+    def update_person_DNs(self, *args, **kwargs) -> TaskStatus:
+        self._check_implem()
+        valid_kwargs = UpdatePersonDNs(*args,**kwargs)
+        return self.implem.update_person_DNs(*args,**valid_kwargs)
 
     def activate_person(self, *args, **kwargs) -> TaskStatus:
         self._check_implem()

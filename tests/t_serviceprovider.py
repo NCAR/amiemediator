@@ -343,9 +343,9 @@ class TestServiceProvider(unittest.TestCase):
                          msg='DeletePersonID not passed in')
 
     def _add_task_info(self, parms):
-        parms['job_id'] = 'atid:aprid'
+        parms['job_id'] = 'atid:pid'
         parms['amie_transaction_id'] = 'atid'
-        parms['amie_packet_rec_id'] = 'aprid'
+        parms['amie_packet_id'] = 'pid'
         parms['task_name'] =  'mytask'
 
         

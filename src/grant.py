@@ -20,9 +20,10 @@ class ChooseOrAddGrant(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -39,9 +40,10 @@ class ChooseOrAddGrant(AMIEParmDescAware,dict):
             'EndDate',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             

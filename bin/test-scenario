@@ -72,8 +72,11 @@ def main(argv):
     run_info = process_command_line_and_configuration(argv)
 
     combined_config = run_info['config']
+
     scenario = run_info['scenario']
+    global_config = combined_config['global']
     amie_config = combined_config['amieclient']
+    amie_config.update(global_config)
     if amie_config['amie_url'] != AMIE_TEST_URL:
         prog_err('[amieconfig] amie_url parameter must be:\n    '+\
                  AMIE_TEST_URL)

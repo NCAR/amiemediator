@@ -17,7 +17,6 @@ class RequestPersonMerge(PacketHandler, packet_type="request_user_modify"):
         
         spa = self.sp_adapter
         
-        person_id = apacket.get('PersonID',None)
         ts = sub.modify_user(spa, apacket)
         if ts:
             return ts

@@ -12,11 +12,14 @@ from taskstatus import (State, TaskStatus)
 from serviceprovider import (ServiceProvider, SPSession)
 from spexception import *
 from requests import ConnectionError
+from loopdelay import (WaitParms, LoopDelay)
 from transactionmanager import TransactionManager
 from packetmanager import (ActionablePacket, PacketManager)
 from packethandler import (PacketHandlerError, PacketHandler)
 
 _config_defaults = {
+    "pause_max": 3600,
+    "amie_sleep_max": 3600,
     "amie_min_retry_delay": 60,
     "amie_max_retry_delay": 3600,
     "amie_retry_time_max": 14400,
@@ -24,67 +27,10 @@ _config_defaults = {
     "amie_busy_loop_delay": 60,
     "amie_reply_delay": 10,
     "snapshot_dir": "/tmp/amiemediator",
-    "sp_absent_task_loop_delay": 21600,
-    "sp_queued_task_loop_delay": 600,
-    "sp_busy_task_loop_delay": 60,
     "sp_min_retry_delay": 60,
     "sp_max_retry_delay": 3600,
     "sp_retry_time_max": 14400,
     }
-
-class WaitParms(object):
-    def __init__(self, auto_update_delay, human_action_delay, idle_delay,
-                 timeutil=None):
-        self.timeutil = TimeUtil() if timeutil is None else timeutil
-        self.auto_update_delay = auto_update_delay
-        self.human_action_delay = human_action_delay
-        self.idle_delay = idle_delay
-        self.base_time = None
-        self.target_time = None
-
-    def set_base_time(self, datetime_val=None):
-        if datetime_val is None:
-            self.base_time = self.timeutil.now()
-        else:
-            self.base_time = datetime_val
-
-    def set_target_time(self, expect_auto_response=False,
-                        expect_human_action=False):
-        if self.base_time == None:
-            return self.timeutil.now()
-        elif expect_auto_response:
-            delay = self.auto_update_delay
-        elif expect_human_action:
-            delay = self.human_action_delay
-        else:
-            delay = self.idle_delay
-        self.target_time = self.timeutil.future_time(delay, self.base_time)
-        return self.target_time
-
-    def set(self, base_time=None, expect_auto_response=False,
-            expect_human_action=False):
-        self.base_time = base_time
-        if self.base_time == None:
-            delay = 0
-        elif expect_auto_response:
-            delay = self.auto_update_delay
-        elif expect_human_action:
-            delay = self.human_action_delay
-        else:
-            delay = self.idle_delay
-        self.target_time = self.timeutil.future_time(delay, self.base_time)
-        return self.target_time
-
-    def target_time(self):
-        return self.target_time
-    
-    def wait_secs(self, currtime=None):
-        if self.target_time is None:
-            return 0
-        if currtime is None:
-            currtime = self.timeutil.now()
-        wait = (self.target_time - currtime).total_seconds()
-        return wait if wait >= 0 else 0
 
 class AMIESession(RetryingServiceProxy):
     """Context Manager class for calling the AMIE client methods"""
@@ -115,7 +61,11 @@ class AMIEMediator(object):
         :param service_provider: An instance of a ServiceProvider instance;
             this talks to the local site service
         :type service_provider: ServiceProvider
+        :param timeutil: If non None, an instance of TimeUtil; this is passed
+            in to make it easier to use a mock
+        :type timeutil: TimeUtil or None
         """
+        
         for attr in _config_defaults:
             val = config.get(attr,_config_defaults[attr])
             setattr(self,attr,val)
@@ -130,16 +80,11 @@ class AMIEMediator(object):
                               self.amie_retry_time_max)
         self.sp = service_provider
         self.timeutil = TimeUtil() if timeutil is None else timeutil
-        SPSession.configure(service_provider,
-                            self.sp_min_retry_delay,
-                            self.sp_max_retry_delay,
-                            self.sp_retry_time_max)
-
-        self.sp_wait = WaitParms(
-            auto_update_delay=self.sp_busy_task_loop_delay,
-            human_action_delay=self.sp_busy_task_loop_delay,
-            idle_delay=self.sp_absent_task_loop_delay,
-            timeutil=self.timeutil)
+        if service_provider:
+            SPSession.configure(service_provider,
+                                self.sp_min_retry_delay,
+                                self.sp_max_retry_delay,
+                                self.sp_retry_time_max)
 
         self.amie_wait = WaitParms(
             auto_update_delay=self.amie_reply_delay,
@@ -147,11 +92,8 @@ class AMIEMediator(object):
             idle_delay=self.amie_idle_loop_delay,
             timeutil=self.timeutil)
 
-        self.transaction_manager = TransactionManager(amie_wait_parms,
-                                                      sp_wait_parms)
-        self.packet_manager = PacketManager(self.site_name,
-                                            self.snapshot_dir,
-                                            self.transaction_manager)
+        self.transaction_manager = TransactionManager(self.amie_wait)
+        self.packet_manager = PacketManager(self.snapshot_dir)
         self.packet_logger = self.packet_manager.packet_logger
         PacketHandler.initialize_handlers()
         
@@ -159,7 +101,44 @@ class AMIEMediator(object):
         self.task_query_time = None
 
 
-    def run(self):
+    def list_packets(self):
+        """List all packets for our site
+
+        :raises ServiceProviderError: if an internal error was encountered
+        :raises ServiceProviderTemporaryError: if the request failed because of
+            a temporary condition: these types of error are typically retried
+            automatically, but will be raised here if too many retries fail
+        :return: list of ActionablePacket
+        """
+        
+        with AMIESession() as amieclient:
+            packets = amieclient.list_packets().packets
+        for packet in packets:
+            print(to_expanded_string(packet))
+
+
+    def fail_transaction(self, trid):
+        """Set the status of the indicated transacton to Failed.
+
+        :param trid: The AMIE transaction ID
+        :type trid: str
+        :raises ServiceProviderError: if an internal error was encountered
+        :raises ServiceProviderTemporaryError: if the request failed because of
+            a temporary condition: these types of error are typically retried
+            automatically, but will be raised here if too many retries fail
+        :return: list of ActionablePacket
+        """
+
+        response = None
+        print("Failing transaction " + trid + ":")
+        with AMIESession() as amieclient:
+            response = self.amie_client.set_transaction_failed(trid)
+
+        if response:
+            print("Status code = " + str(response.status_code))
+
+
+    def run(self) -> list:
         """Service all active packets without waiting for updates
 
         The AMIE service is queried once for all active packets, and all
@@ -170,14 +149,18 @@ class AMIEMediator(object):
         :raises ServiceProviderTemporaryError: if the request failed because of
             a temporary condition: these types of error are typically retried
             automatically, but will be raised here if too many retries fail
+        :return: list of ActionablePacket
         """
-        
-        self._load_tasks(active=True)
-        self._load_amie_packets()
 
-        self.packet_manager.service_actionable_packets()
+        self._load_tasks()
 
-        return
+        apackets = self._load_amie_packets()
+        self._flush_amie_packets()
+
+        apackets = self._service_actionable_packets(apackets)
+        self._flush_amie_packets()
+
+        return apackets
 
     def run_loop(self):
         """Process all active packets in a loop
@@ -192,42 +175,57 @@ class AMIEMediator(object):
             automatically, but will be raised here if too many retries fail
         """
 
-        self._load_tasks()
+        #
+        # Call run() outside the main loop to initialize transactionmanager;
+        # this calls _load_tasks() and _load_amie_packets() unconditionally,
+        # and retrieves ALL known active tasks and packets. When we enter the
+        # loop, calls to _load_tasks() and _load_amie_packets() will include
+        # parameters to retrieve only updated tasks/packets.
+        #
+        apackets = self.run()
 
-        self._load_amie_packets()
-
-        base_time = self.timeutil.now()
-
-        (a_expect_repl, have_apkts, sp_expect_auto_upd, sp_expect_upd) = \
-            self._service_actionable_packets()
-
-        self.amie_wait.set(base_time, a_expect_repl, have_apkts)
-        self.sp_wait.set(base_time, sp_expect_auto_upd, sp_expect_upd)
+        pause_max = int(self.pause_max)
+        
+        previous_wait_secs = 0
         
         while True:
+
+            # How long we wait before querying AMIE again depends on whether
+            # we just sent AMIE a packet, and whether any packets are being
+            # worked on locally by the ServiceProvider. In any case we don't
+            # want to pause more than self.pause_max seconds.
             
-            base_time = self.timeutil.now()
+            loop_delay = self.transaction_manager.get_loop_delay()
+            wait_secs = loop_delay.wait_secs()
+            if wait_secs:
+                if wait_secs > pause_max:
+                    wait_secs = pause_max
+                # Whenever we increase the time we are waiting, ramp up to
+                # the calculated wait time; e.g. if we had a short wait because
+                # we were expecting a reply from AMIE, but we are no longer
+                # expecting anything from AMIE, there is still a chance that
+                # there is a cluster of requests, so we don't want to wait too
+                # long for them
+                if wait_secs > previous_wait_secs:
+                    ramped_wait_secs = max(previous_wait_secs * 2, 1)
+                    if ramped_wait_secs < wait_secs:
+                        wait_secs = ramped_wait_secs
+            
+            if self.transaction_manager.have_actionable_packets():
+                self._load_tasks(wait=wait_secs)
+            elif wait_secs:
+                self.logger.debug("Sleeping " + str(wait_secs) + " sec")
+                self.timeutil.sleep(wait_secs)
+                
+            previous_wait_secs = wait_secs if wait_secs else 0
 
-            if self.sp_wait.target_time is None or \
-               self.sp_wait.target_time <= self.amie_wait.target_time:
-                wait = int(self.sp_wait.wait_secs(base_time))
-                self._load_tasks(wait=wait)
+            apackets = self._load_amie_packets()
+            self._flush_amie_packets()
 
-            else:
-                a_wait = self.amie_wait.wait_secs(base_time)
-                self.timeutil.sleep(a_wait)
-
-                base_time = self.timeutil.now()
-                self._load_amie_packets()
-                self.amie_wait.set_base_time(base_time)
-
-            base_time = self.timeutil.now()
-            (a_expect_repl, have_apkts, sp_expect_auto_upd, sp_expect_upd) = \
-                self._service_actionable_packets()
-
-            self.amie_wait.set(base_time, a_expect_repl, have_apkts)
-            self.sp_wait.set(base_time, sp_expect_auto_upd, sp_expect_upd)
-
+            if apackets:
+                apackets = self._service_actionable_packets(apackets)
+                self._flush_amie_packets()
+                
 
     def run_loop_persistently(self):
         """Process all active packets in a loop, persistently
@@ -250,7 +248,11 @@ class AMIEMediator(object):
             except Exception as err:
                 raise err
         
-    def _load_tasks(self, active=True, wait=None):
+    def _load_tasks(self, active=True, wait=None) -> int:
+        m = "Calling ServiceProvider.get_tasks(active=" + str(active) +\
+            ", wait=" + str(wait) + ", since=" + str(self.task_query_time) + ")"
+        self.logger.debug(m)
+        
         with SPSession() as sp:
             tasks = sp.get_tasks(active=active, wait=wait,
                                  since=self.task_query_time)
@@ -262,7 +264,7 @@ class AMIEMediator(object):
             timestamp = float(task['timestamp'])
             if timestamp > latest:
                 latest = timestamp
-        self.task_query_time = None if latest == 0.0 else latest
+        self.task_query_time = None if latest == 0.0 else int(latest)
 
         ntasks = len(tasks)
         m = f"Got {ntasks} tasks from Service Provider"
@@ -272,18 +274,18 @@ class AMIEMediator(object):
             self.logger.info(m)
 
         self.transaction_manager.buffer_task_updates(tasks)
-        self.packet_manager.refresh_tasks(tasks)
-        # this calls pm.add_or_update_tasks(), which then calls
-        # pm.add_or_update_task(), which is not called anywhere else.
-        # pm.add_or_update_task() calls apacket_add_or_update_task(), which IS
-        # called elsewhere
-        
+        return ntasks
 
-    def _load_amie_packets(self):
+    def _load_amie_packets(self) -> list:
+        packets = None
         currtime = self.timeutil.now();
+        all_packets = self.amie_packet_update_time is None
         list_packets_parms = {
             'update_time_start': self.amie_packet_update_time,
             }
+        m = "Calling amieclient.list_packets() with update_start_time=" +\
+            str(self.amie_packet_update_time)
+        self.logger.debug(m)
         with AMIESession() as amieclient:
             packets = amieclient.list_packets(**list_packets_parms).packets
             self.amie_packet_update_time = currtime
@@ -294,97 +296,77 @@ class AMIEMediator(object):
             self.logger.debug(msg)
         else:
             self.logger.info(msg)
+
+        packets = self._filter_packets(packets)
+
+        if all_packets:
+            inactive_trids = self.transaction_manager.get_transaction_ids()
+        else:
+            inactive_trids = set()
             
-        serviceable_packets, obsolete_trids, itc_errs = \
-            self._filter_out_unserviceable_amie_packets(packets)
+        for packet in packets:
+            itc_info = self._get_itc_info(packet)
+            log_tag = self._get_packet_log_tag(packet, itc_info)
 
-        self.transaction_states.register_incoming_amie_packets(currtime, \
-                                                          serviceable_packets)
+            jid, atrid, pid = get_packet_keys(packet)
 
-        with SPSession() as sp:
-            for trid in obsolete_trids:
-                sp.clear_transaction(trid)
-                self.packet_manager.purge_transaction(trid)
-                self.transaction_states.purge(trid)
-
-        expect_more_amie_packets = False
-        for itc_err in itc_errs:
-            sent_non_ITC = self._send_amie_packet(itc_err)
-            if sent_non_ITC:
-                expect_more_amie_packets = True
-
-        self.packet_manager.refresh_packets(serviceable_packets)
-        # This creates/updates ActionablePackets and merges in tasks
-        # It also calls pm._purge_obsolete_task_transactions()
-
-        return expect_more_amie_packets
-
-    def _filter_out_unserviceable_amie_packets(self, amie_packets):
-        ended_transactions = set()
-        itc_error_replies = list()
-        packets_to_service = []
-        print("DEBUG in _filter_out_unserviceable_amie_packets")
-        for packet in amie_packets:
-            expected_replies=packet.__class__.expected_reply
-            print("DEBUG packet_type="+packet.packet_type+" expected_replies="+to_expanded_string(expected_replies))
-
-            disposition = None
-            jid, atrid, aprid = get_packet_keys(packet)
+            inactive_trids.discard(atrid)
+            msg = self.transaction_manager.buffer_incoming_amie_packet(currtime,
+                                                                       packet)
+            if msg is None:
+                # saw this packet already
+                continue
             
-            if packet.packet_type == "inform_transaction_complete" and \
-               packet.remote_site_name == self.site_name:
-                disposition = "Got ITC packet from AMIE - purging transaction"
-                ended_transactions.add(atrid)
-            elif packet.remote_site_name == self.site_name:
-                err = self._get_invalid_packet_error(packet)
-                if err is None:
-                    packets_to_service.append(packet)
-                    disposition = "Accepted incoming packet from AMIE"
-                else:
-                    disposition = "Rejecting invalid incoming packet from AMIE"
-                    reply_packet = packet.reply_with_failure(message=err)
-                    itc_error_replies.append(reply_packet)
+            self.packet_logger.debug(msg + " " + log_tag + ":\n" + \
+                                     packet.json(indent=2,sort_keys=True))
+            self.logger.debug(msg + ": " + log_tag)
+
+        if inactive_trids:
+            self._purge_obsolete_transactions(inactive_trids)
+
+        return self.transaction_manager.get_actionable_packets()
+
+    def _filter_packets(self, packets):
+        packets_for_us = list()
+        for packet in packets:
+            if packet.remote_site_name == self.site_name:
+                packets_for_us.append(packet)
             else:
                 disposition = "Ignoring incoming packet from AMIE " +\
                     "with remote_site_name=" + packet.remote_site_name
+                self.packet_logger.debug(disposition + ":\n" + \
+                                         packet.json(indent=2,sort_keys=True))
+        return packets_for_us
+            
 
-            print("DEBUG   packet_type="+packet.packet_type+" site_name="+packet.remote_site_name+" disp="+disposition)
-            self.packet_logger.debug(disposition + ":\n" + \
-                                     packet.json(indent=2,sort_keys=True))
-            self.logger.debug(disposition + ": " + atrid + ":" + aprid)
-        return (packets_to_service, ended_transactions, itc_error_replies)
+    def _purge_obsolete_transactions(self, trids):
+        for atrid in trids:
+            self._purge_obsolete_transaction(atrid)
 
-    def _get_invalid_packet_error(self, amie_packet):
-        err = None
-        if amie_packet.validate_data():
-            missing = amie_packet.missing_attributes()
-            if missing:
-                err = "Required attributes are missing from packet: " + \
-                    ",".join(missing)
-        else:
-            err = "validate_data() failed for packet"
-        if err is not None:
-            self.logdumper.info("Invalid packet (" + err + "):",amie_packet)
-        return err
-
-
-    def _service_actionable_packets(self):
-        reply_packets = self.packet_manager.service_actionable_packets()
-        expect_more_amie_packets = False
-        for reply_packet in reply_packets:
-            print("DEBUG service_actionable_packets for reply packet:\n" + \
-                                     reply_packet.json(indent=2,sort_keys=True))
-            sent_non_ITC = self._send_amie_packet(reply_packet)
-            if sent_non_ITC:
-                expect_more_amie_packets = True
-        n_apackets = self.packet_manager.actionable_packet_count()
-        (sp_expect_auto_upd, sp_expect_upd) = \
-            self.packet_manager.get_expected_task_update_flags()
+    def _purge_obsolete_transaction(self, atrid):
+        with SPSession() as sp:
+            self.logger.debug("Clearing transaction "+atrid)
+            sp.clear_transaction(atrid)
+            apackets = self.transaction_manager.get_actionable_packets(atrid)
+            self.packet_manager.purge_actionable_packets(apackets)
+            self.transaction_manager.purge(atrid)
         
-        return (expect_more_amie_packets,
-                n_apackets > 0,
-                sp_expect_auto_upd,
-                sp_expect_upd)
+    def _flush_amie_packets(self):
+        packets = self.transaction_manager.get_outgoing_amie_packets()
+        for packet in packets:
+            self._send_amie_packet(packet)
+
+    def _service_actionable_packets(self, apackets):
+        if self.logger.isEnabledFor(logging.DEBUG):
+            self.logger.debug("Servicing ActionablePackets:")
+            for apacket in apackets:
+                self.logger.debug("    " + apacket.mk_name())
+        reply_packets = self.packet_manager.service_actionable_packets(apackets)
+
+        for reply_packet in reply_packets:
+            self.transaction_manager.buffer_outgoing_amie_packet(reply_packet)
+
+        apackets = self.transaction_manager.get_actionable_packets()
         
     def _send_amie_packet(self, packet):
         """Send a packet to the AMIE server
@@ -394,12 +376,32 @@ class AMIEMediator(object):
             for this transaction.
         """
 
-        packet_type = packet.packet_type
-        jid, atrid, aprid = get_packet_keys(packet)
+        itc_info = self._get_itc_info(packet)
+        log_tag = self._get_packet_log_tag(packet, itc_info)
         
-        self.packet_logger.debug("Sending Reply Packet ("+packet_type+"):\n" +\
+        self.packet_logger.debug("Sending Reply Packet ("+log_tag+"):\n" +\
                                  packet.json(indent=2,sort_keys=True))
-        self.logger.debug("Sending Reply Packet ("+packet_type+"): " + atrid + ":" + aprid)
+        self.logger.debug("Sending Reply Packet "+log_tag)
+
         with AMIESession() as amieclient:
             self.amie_client.send_packet(packet)
-        return (packet_type != 'inform_transaction_complete')
+
+        if itc_info:
+            jid, atrid, pid = get_packet_keys(packet)
+            self._purge_obsolete_transaction(atrid)
+
+    def _get_itc_info(self, packet):
+        packet_type = packet.__class__._packet_type
+        if packet_type == 'inform_transaction_complete':
+            info = " " + str(packet.StatusCode)
+            if packet.Message:
+                info = info + " (" + packet.Message + ")"
+            return info
+        return None
+        
+    def _get_packet_log_tag(self, packet, itc_info):
+        term = ": " + itc_info if itc_info else ''
+        jid, atrid, pid = get_packet_keys(packet)
+        packet_type = packet.__class__._packet_type
+        return atrid + ":" + pid + " " + packet_type + term
+        

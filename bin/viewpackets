@@ -221,8 +221,8 @@ def show_packets_list(snapshots, max_wait):
     print(LIST_TASK_FORMAT.format(*LIST_TASK_LINES))
     for ap_snap in ap_snaps:
         tid = ap_snap['amie_transaction_id']
-        pid = ap_snap['amie_packet_rec_id']
-        packet_type = ap_snap['packet_type']
+        pid = ap_snap['amie_packet_id']
+        packet_type = ap_snap['amie_packet_type']
         key = tid + '.' + pid + '.' + packet_type
         print(LIST_APACKET_FORMAT.format(key))
         task_status_list = ap_snap.get('tasks',None)

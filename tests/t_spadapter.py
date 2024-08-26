@@ -73,7 +73,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
     def test_choose_or_add_org(self):
         apacket = ActionablePacket(self.rpc_packet1)
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         spa = ServiceProviderAdapter()
         for i in range(2):
             ts = spa.choose_or_add_org(apacket,"Pi")
@@ -82,8 +82,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'choose_or_add_org',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -93,8 +93,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'choose_or_add_org',
                              msg='args task_name not set')
             self.assertEqual(args['OrgCode'],apacket['PiOrgCode'],
@@ -103,7 +103,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
     def test_choose_or_add_person(self):
         apacket = ActionablePacket(self.rpc_packet1)
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         spa = ServiceProviderAdapter()
         for i in range(2):
             ts = spa.choose_or_add_person(apacket,"Pi")
@@ -112,8 +112,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'choose_or_add_person',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -123,8 +123,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'choose_or_add_person',
                              msg='args task_name not set')
             self.assertEqual(args['FirstName'],apacket['PiFirstName'],
@@ -146,7 +146,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket = ActionablePacket(self.rpc_packet1)
         apacket['PiPersonID'] = "vraunak"
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         spa = ServiceProviderAdapter()
         for i in range(2):
             ts = spa.choose_or_add_grant(apacket)
@@ -155,8 +155,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],
                              'choose_or_add_grant',
                              msg='ts task_name not set')
@@ -167,8 +167,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],
                              'choose_or_add_grant',
                              msg='args task_name not set')
@@ -180,7 +180,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket['site_grant_key'] = "IRI120015"
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.create_project(apacket,'112157')
 
@@ -188,8 +188,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'create_project',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -199,8 +199,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'create_project',
                              msg='args task_name not set')
             self.assertEqual(args['PiPersonID'],'112157',
@@ -212,7 +212,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket['site_grant_key'] = "IRI120015"
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.inactivate_project(apacket)
 
@@ -220,8 +220,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'inactivate_project',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -231,8 +231,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'inactivate_project',
                              msg='args task_name not set')
             self.assertEqual(args['ProjectID'],'CMU139',
@@ -244,7 +244,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket['site_grant_key'] = "IRI120015"
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.reactivate_project(apacket)
 
@@ -252,8 +252,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'reactivate_project',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -263,8 +263,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],prid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'reactivate_project',
                              msg='args task_name not set')
             self.assertEqual(args['ProjectID'],'CMU139',
@@ -274,7 +274,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket = ActionablePacket(self.rac_packet1)
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.create_account(apacket,'112157')
 
@@ -282,8 +282,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],
                              'create_account.ProjectID:PersonID',
                              msg='ts task_name not set')
@@ -294,8 +294,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],
                              'create_account.ProjectID:PersonID',
                              msg='args task_name not set')
@@ -306,7 +306,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket = ActionablePacket(self.rac_packet1)
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.inactivate_account(apacket,"User")
 
@@ -314,8 +314,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'inactivate_account',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -325,8 +325,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'inactivate_account',
                              msg='args task_name not set')
             self.assertEqual(args['PersonID'],'112157',
@@ -336,7 +336,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket = ActionablePacket(self.rac_packet1)
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.reactivate_account(apacket,"User")
 
@@ -344,8 +344,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'reactivate_account',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -355,8 +355,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'reactivate_account',
                              msg='args task_name not set')
             self.assertEqual(args['PersonID'],'112157',
@@ -367,7 +367,7 @@ class TestServiceProviderAdapter(unittest.TestCase):
         apacket['ProjectID'] = "CMU139"
         spa = ServiceProviderAdapter()
 
-        jid, atrid, aprid = get_packet_keys(apacket)
+        jid, atrid, pid = get_packet_keys(apacket)
         for i in range(2):
             ts = spa.update_allocation(apacket)
 
@@ -375,8 +375,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='ts job_id not set')
             self.assertEqual(ts['amie_transaction_id'],atrid,
                              msg='ts amie_transaction_id not set')
-            self.assertEqual(ts['amie_packet_rec_id'],aprid,
-                             msg='ts amie_packet_rec_id not set')
+            self.assertEqual(ts['amie_packet_id'],pid,
+                             msg='ts amie_packet_id not set')
             self.assertEqual(ts['task_name'],'update_allocation',
                              msg='ts task_name not set')
             self.assertEqual(ts['task_state'],'queued',
@@ -386,8 +386,8 @@ class TestServiceProviderAdapter(unittest.TestCase):
                              msg='args job_id not set')
             self.assertEqual(args['amie_transaction_id'],atrid,
                              msg='args amie_transaction_id not set')
-            self.assertEqual(args['amie_packet_rec_id'],aprid,
-                             msg='args amie_packet_rec_id not set')
+            self.assertEqual(args['amie_packet_id'],pid,
+                             msg='args amie_packet_id not set')
             self.assertEqual(args['task_name'],'update_allocation',
                              msg='args task_name not set')
             self.assertEqual(args['ProjectID'],'CMU139',

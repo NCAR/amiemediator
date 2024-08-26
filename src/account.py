@@ -4,9 +4,10 @@ class CreateAccount(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -16,9 +17,10 @@ class CreateAccount(AMIEParmDescAware,dict):
             'Resource',
         ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -34,9 +36,10 @@ class InactivateAccount(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -46,9 +49,10 @@ class InactivateAccount(AMIEParmDescAware,dict):
             'Resource',
         ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -64,9 +68,10 @@ class InactivateAccount(AMIEParmDescAware,dict):
 class ReactivateAccount(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -76,9 +81,10 @@ class ReactivateAccount(AMIEParmDescAware,dict):
             'Resource',
         ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 

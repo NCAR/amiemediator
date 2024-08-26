@@ -36,9 +36,10 @@ class ServiceProvider(ServiceProviderIF):
         if task_name is None:
             task_name = kwargs['task_name']
         ts_parms = {
-            'job_id': kwargs['job_id'],
+            'amie_packet_type': kwargs['amie_packet_type'],
             'amie_transaction_id': kwargs['amie_transaction_id'],
-            'amie_packet_rec_id': kwargs['amie_packet_rec_id'],
+            'amie_packet_id': kwargs['amie_packet_id'],
+            'job_id': kwargs['job_id'],
             'task_name': task_name,
             'task_state': task_state,
             'timestamp': DateTime.now(),

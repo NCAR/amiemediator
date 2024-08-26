@@ -22,5 +22,5 @@ dependencies = [
 ]
 [project.urls]
 "Homepage" = "https://github.com/NCAR/amiemediator"
-"AMIClient" = "https://github.com/XSEDE/amieclient"
+"AMIEClient" = "https://github.com/XSEDE/amieclient"
 

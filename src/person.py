@@ -71,9 +71,10 @@ class ChooseOrAddPerson(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -102,9 +103,10 @@ class ChooseOrAddPerson(AMIEParmDescAware,dict):
             'RequestedLoginList',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -115,6 +117,38 @@ class ChooseOrAddPerson(AMIEParmDescAware,dict):
         """Validate, filter, and transform arguments to ``choose_or_add_person()``"""
         dict.__init__(self, **kwargs)
 
+class UpdatePersonDNs(AMIEParmDescAware,dict):
+    """
+    A class used when specifying a DNs to update for a person
+    """
+
+    @process_parms(
+        allowed=[
+            'amie_transaction_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
+            'task_name',
+            'timestamp',
+            
+            'PersonID',
+            'DnList',
+            ],
+        required=[
+            'amie_transaction_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
+            'task_name',
+            'timestamp',
+            
+            'PersonID',
+            'DnList',
+            ])
+    def __init__(self, **kwargs) -> dict:
+        """Validate, filter, and transform arguments to ``update_person_DNs()``"""
+        dict.__init__(self, **kwargs)
+
 class ActivatePerson(AMIEParmDescAware,dict):
     """
     A class used when specifying a local person to activate
@@ -122,9 +156,10 @@ class ActivatePerson(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -138,9 +173,10 @@ class ActivatePerson(AMIEParmDescAware,dict):
             'RemoteSiteLogin',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -157,9 +193,10 @@ class MergePerson(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -171,9 +208,10 @@ class MergePerson(AMIEParmDescAware,dict):
             'DeletePortalLogin',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             

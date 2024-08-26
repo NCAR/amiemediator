@@ -15,9 +15,10 @@ class LookupLocalFos(AMIEParmDescAware,dict):
 class ChooseOrAddLocalFos(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -27,9 +28,10 @@ class ChooseOrAddLocalFos(AMIEParmDescAware,dict):
             'PiDepartment',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -73,9 +75,10 @@ class LookupProjectNameBase(AMIEParmDescAware,dict):
 class ChooseOrAddProjectNameBase(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -97,9 +100,10 @@ class ChooseOrAddProjectNameBase(AMIEParmDescAware,dict):
             'site_org',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -118,9 +122,10 @@ class CreateProject(AMIEParmDescAware,dict):
 
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -149,9 +154,10 @@ class CreateProject(AMIEParmDescAware,dict):
             'StartDate',
             ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -175,9 +181,10 @@ class CreateProject(AMIEParmDescAware,dict):
 class InactivateProject(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -192,9 +199,10 @@ class InactivateProject(AMIEParmDescAware,dict):
             'StartDate',
         ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 
@@ -208,9 +216,10 @@ class InactivateProject(AMIEParmDescAware,dict):
 class ReactivateProject(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
             
@@ -226,9 +235,10 @@ class ReactivateProject(AMIEParmDescAware,dict):
             'StartDate',
         ],
         required=[
-            'job_id',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
+            'amie_packet_type',
             'task_name',
             'timestamp',
 

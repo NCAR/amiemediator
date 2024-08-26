@@ -40,6 +40,14 @@ def define_person(spa, apacket, prefix):
     apacket['site_org'] = site_org
     apacket['person_active'] = truthy(person_active)
     return None
+    
+def update_person_DNs(spa, apacket, prefix):
+    spa.logdumper.debug("update_person_DNs: apacket=", apacket)
+    updn_ts = spa.update_person_DNs(apacket, prefix)
+    if updn_ts['task_state'] == "successful":
+        return None
+    else:
+        return updn_ts
 
 def activate_person(spa, apacket, prefix):
     person_active = truthy(apacket.get('person_active','0'))

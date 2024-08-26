@@ -60,7 +60,6 @@ class RetryingServiceProxy:
         cls.canonical_temp_exception_class = \
             cls.temp_exception_classes[0]
         cls.logger = logging.getLogger(__name__)
-
         
     def __enter__(self):
         cls = self.__class__
@@ -91,14 +90,14 @@ class RetryingServiceProxy:
         if cls.retry_delay is None:
             cls.retry_delay = int(self.min_retry_delay)
             cls.retry_deadline = \
-                cls.time_util.future_time(int(self.retry_time_max))
+                cls.time_util.future_time(int(cls.retry_time_max))
         else:
-            if cls.time_util.now() > self.retry_deadline:
+            if cls.time_util.now() > cls.retry_deadline:
                 cls.retry_delay = None
                 cls.retry_deadline = None
                 raise cls.max_retry_exception() from exc
             cls.retry_delay *= 2
-            if cls.retry_delay > self.max_retry_delay:
-                cls.retry_delay = self.max_retry_delay
+            if cls.retry_delay > cls.max_retry_delay:
+                cls.retry_delay = cls.max_retry_delay
 
 

@@ -14,16 +14,24 @@ PROG = "amie"
 DESC = "Process AMIE packets with a custom Service Provider plugin"
 USAGE = os.environ.get('USAGE',None)
 USAGE1 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] [-o|--once]"
-USAGE2 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] -p|--persistent"
-USAGE3 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] --showconfig"
-USAGE4 = PROG + " -h|--help"
+USAGE2 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] " +\
+    "-p|--persistent"
+USAGE3 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] -l|--list"
+USAGE4 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] " +\
+    "-f|--fail=<trid>"
+USAGE5 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] --showconfig"
+USAGE6 = PROG + " -h|--help"
 USAGE = f'''Usage: {USAGE1}
          or
        {USAGE2}
          or
        {USAGE3}
          or
-       {USAGE4}'''
+       {USAGE4}
+         or
+       {USAGE5}
+         or
+       {USAGE6}'''
 
 HELP_TEXT = f'''
   -c|--configfile : Configuration ("ini") file. If not specified, the
@@ -44,26 +52,31 @@ HELP_TEXT = f'''
                     that is not a simple timeout (e.g. a "Connection refused"
                     error). The --persistent flag will cause {PROG} to
                     keep retrying when it encounters this type of error. 
+  -l|--list       : List all AMIE packets and exit.
+  -f|--fail       : Set the status of the indicated transacton to Failed, then
+                    exit.
   --showconfig    : Display the current configuration and exit.
   -h|--help       : Display help test and quit
 
     
 Configuration
 -------------
-The configuration should include at least a "[amieclient]" section, a
-"[localsite]" section, a "[logging]" section, and an "[mediator]" section.
+The configuration should include at least a "[global]" section, an
+"[amieclient]" section, a "[localsite]" section, a "[logging]" section, and
+a "[mediator]" section.
 
-The "[amieclient]" section must have "amie_url" and "amie_key" keys, and
-can have a "site_name" key. The "[localsite]" section must have at least
-a "package" key and a "module" key, which identify the package and module
-that implements the local "Service Provider"; all other keys in the
-"[localsite]" section are unique to the Service Provider. Entries in the
-"[logging]" sections will be used to configure loggers. See Logging
-Configuration below. The "[mediator]" section contains various timing-related
-values and the location of the "snapshot" directory. Refer to comments in the
-sample ``config.ini`` at the top of the amiemediator package for details.
+The "[global]" section must have a "pause_max" key, and can have a "site_name"
+key. The "[amieclient]" section must have "amie_url" and "amie_key" keys. The
+"[localsite]" section must have at least a "package" key and a "module" key,
+which identify the package and module that implements the local "Service
+Provider"; all other keys in the "[localsite]" section are unique to the
+Service Provider. Entries in the "[logging]" sections will be used to configure
+loggers. See Logging Configuration below. The "[mediator]" section contains
+various timing-related values and the location of the "snapshot" directory.
+Refer to comments in the sample ``config.ini`` at the top of the amiemediator
+package for details.
 
-Environment variables with names beginning with "AMIECLIENT_" or
+Environment variables with names beginning with "GLOBAL_", "AMIECLIENT_" or
 "LOCALSITE_" are treated as "secret" configuration variables that can be
 interpolated: the name of the configuration variable is the environment
 variable name converted to local case. For example, the environment
@@ -113,18 +126,38 @@ def main(argv):
 
     once = run_info['once']
     persistent = run_info['persistent']
+    list = run_info['list']
+    fail = run_info['fail']
     showconfig = run_info['showconfig']
     combined_config = run_info['config']
-    if showconfig:
-        pp = pprint.PrettyPrinter(indent=4)
-        print(pp.pprint(combined_config))
-        sys.exit(0)
+
+    global_config = combined_config['global']
 
     amie_config = combined_config['amieclient']
-    localsite_config = combined_config['localsite']
-    logging_config = combined_config['logging']
-    mediator_config = combined_config['mediator']
+    amie_config.update(global_config)
 
+    localsite_config = combined_config['localsite']
+    localsite_config.update(global_config)
+
+    mediator_config = combined_config['mediator']
+    mediator_config.update(global_config)
+
+    logging_config = combined_config['logging']
+
+    if showconfig:
+        pp = pprint.PrettyPrinter(indent=4)
+        print("global:")
+        print(pp.pprint(global_config))
+        print("amieclient:")
+        print(pp.pprint(amie_config))
+        print("localsite:")
+        print(pp.pprint(localsite_config))
+        print("mediator:")
+        print(pp.pprint(mediator_config))
+        print("logging:")
+        print(pp.pprint(logging_config))
+        sys.exit(0)
+    
     configure_logging(**logging_config)
 
     logger = logging.getLogger(None)
@@ -137,8 +170,9 @@ def main(argv):
                                  amie_config['amie_url'],
                                  )
 
-        service_provider = ServiceProvider()
-        service_provider.apply_config(localsite_config)
+        if not fail and not list:
+            service_provider = ServiceProvider()
+            service_provider.apply_config(localsite_config)
 
         mediator = AMIEMediator(mediator_config, amie_client, service_provider)
 
@@ -146,6 +180,10 @@ def main(argv):
             mediator.run()
         elif persistent:
             mediator.run_loop_persistently()
+        elif list:
+            mediator.list_packets()
+        elif fail:
+            mediator.fail_transaction(fail)
         else:
             mediator.run_loop()
 
@@ -161,7 +199,7 @@ def process_command_line_and_configuration(argv):
 
     config = ConfigLoader.loadConfig(configfile)
     if site is not None:
-        config['amieclient']['site_name'] = site;
+        config['global']['site_name'] = site;
 
     run_info['config'] = config
 
@@ -173,13 +211,17 @@ def process_command_line(argv):
     site = None
     once = False
     persistent = False
+    list = False
+    fail = False
     showconfig = False
     try:
-        opts,args = getopt.getopt(argv,"hopc:s:",
+        opts,args = getopt.getopt(argv,"hoplf:c:s:",
                                   [
                                       "help",
                                       "once",
                                       "persistent",
+                                      "list",
+                                      "fail=",
                                       "configfile=",
                                       "site=",
                                       "showconfig"])
@@ -200,6 +242,10 @@ def process_command_line(argv):
             once = True
         elif opt in ("-p","--persistent"):
             persistent = True
+        elif opt in ("-l","--list"):
+            list = True
+        elif opt in ("-f","--fail"):
+            fail = arg
         elif opt in ("--showconfig"):
             showconfig = True
 
@@ -212,6 +258,8 @@ def process_command_line(argv):
         'site': site,
         'once': once,
         'persistent': persistent,
+        'list': list,
+        'fail': fail,
         'showconfig': showconfig
     }
 

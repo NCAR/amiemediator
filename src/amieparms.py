@@ -5,35 +5,49 @@ from parmdesc import process_parms as real_process_parms
 from parmdesc import ParmDescAware
 
 def get_packet_keys(packet) -> dict:
-    """Return a packet's job_id, amie_transaction_id, and packet_rec_id
+    """Return a packet's job_id, amie_transaction_id, and packet_id
 
     An amie_transaction_id contains a combination of all the AMIE fields that
     uniquely identify an AMIE transaction (transaction_id, originating site,
     remote site, and local site).
 
-    The packet_rec_id uniquely identifies an AMIE Packet within a transaction.
+    The packet_id uniquely identifies an AMIE Packet within a transaction, so
+    the combination of amie_transaction_id and packet_id uniquely identify a
+    packet.
 
-    A job_key is used to uniquely identify a set of related ServiceProvider
-    tasks. It contains a combination of all the AMIE fields in the
-    amie_transaction_id plus the packet_rec_id.
+    The job_id also uniquely identifies a packet; it is the globally-unique
+    packet id for AMIE - the Packet.packet_rec_id (not to be confused with
+    Packet.packet_id). Since the packet is associated with a set of tasks in
+    the ServiceProvider and therefore acts a the "job" that ties multiple tasks
+    together, we call this job_id rather that packet_rec_id in that context to
+    avoid confusion with the packet_id.
+
+    While both the job_id and amie_transaction_id+packet_id uniquely identify
+    a packet, the amie_transaction_id+packet_id is the preferred identifier
+    for the ServiceProvider because it can be used to distinguish AMIE jobs
+    from jobs that might come from other sources. However, the job_id is used
+    internally by the mediator because AMIE reply packets refer to
+    packet_rec_ids in the "in_reply_to" attribute.
 
     :param packet: Input packet data
     :param type: dict or AMIE Packet
     :raises TypeError: if invalid packet data is provided
     :return: tuple
     """
+
     atrid = None
-    aprid = None
     if isinstance(packet,AMIEPacket):
+        job_id = str(packet.packet_rec_id)
         tid = str(packet.transaction_id)
         os = str(packet.originating_site_name)
         rs = str(packet.remote_site_name)
         ls = str(packet.local_site_name)
-        prid = str(packet.packet_rec_id)
+        pid = str(packet.packet_id)
     elif isinstance(packet,dict):
+        job_id = packet.get('job_id',None)
         atrid = packet.get('amie_transaction_id',None)
-        aprid = packet.get('amie_packet_rec_id',None)
-        if atrid is None or aprid is None:
+        pid = packet.get('amie_packet_id',None)
+        if atrid is None or job_id is None:
             header = packet.get('header',None)
             if header is None:
                 raise TypeError("get_packet_keys() given unknown dict format")
@@ -41,17 +55,29 @@ def get_packet_keys(packet) -> dict:
             os = str(header['originating_site_name'])
             rs = str(header['remote_site_name'])
             ls = str(header['local_site_name'])
-            prid = str(header['packet_rec_id'])
+            pid = str(header['packet_id'])
+            job_id = str(header['packet_rec_id'])
     else:
         raise TypeError("get_packet_keys() requires AMIE Packet or dict")
 
     if atrid is None:
         atrid = f"{os}:{rs}:{ls}:{tid}"
-    if aprid is None:
-        aprid = str(prid)
-    job_id = f"{atrid}:{aprid}"
 
-    return (job_id, atrid, aprid)
+    return (job_id, atrid, pid)
+
+def parse_atrid(atrid) -> (str, str, str, str):
+    """Return components of amie_transaction_id string
+
+    The components are (in order) originating_site_name, remote_site_name,
+    local_site_name, and transaction_id
+
+    :param atrid: AMIE transaciton ID string
+    :type atrid: str
+    :returns: Tuple with os, rs, ls, tid
+    """
+    
+    comps = atrid.split(":")
+    return (comps[0],comps[1],comps[2],comps[3])
 
 def strip_key_prefix(prefix, parm_dict):
     """Copy a dictionary but remove the given prefix from keys
@@ -111,7 +137,7 @@ class AMIEParmDescAware(ParmDescAware):
         'active': bool,
         'amie_packet_type': str,
         'amie_packet_timestamp': DateTime,
-        'amie_packet_rec_id': str,
+        'amie_packet_id': str,
         'amie_transaction_id': str,
         'job_id': str,
         'person_active': bool,
@@ -213,8 +239,8 @@ class AMIEParmDescAware(ParmDescAware):
         'active': "Is object currently 'active' at the local site",
         'amie_packet_type': "packet_type from an AMIE packet",
         'amie_packet_timestamp': "timestamp from an AMIE packet header",
-        'amie_packet_rec_id': "string that uniquely identifies a packet " + \
-                              "within an AMIE transaction",
+        'amie_packet_id': "string that uniquely identifies a packet " + \
+                          "within an AMIE transaction",
         'amie_transaction_id': "string that uniquely identifies an AMIE " + \
                                "transaction",
         'job_id': "string that uniquely identifies related set of tasks",

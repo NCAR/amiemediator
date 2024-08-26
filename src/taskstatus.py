@@ -87,17 +87,20 @@ class TaskStatus(AMIEParmDescAware, dict):
 
     @process_parms(
         allowed=[
-            'job_id',
+            'amie_packet_type',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
             'task_name',
             'task_state',
             'timestamp',
             'products',
             ],
         required=[
+            'amie_packet_type',
             'amie_transaction_id',
-            'amie_packet_rec_id',
+            'amie_packet_id',
+            'job_id',
             'task_name',
             'task_state',
             'timestamp'
@@ -113,7 +116,6 @@ class TaskStatus(AMIEParmDescAware, dict):
 
         A Service Provider should use this constructor to create
         a TaskStatus object.
-
         If the product list contains a "FAILED" or "ERRORED" product, the
         task_state will be set to "failed" or "errored" respectively. If a
         task_state of "failed" or "errored" is set explicitly and there is
@@ -190,11 +192,17 @@ class TaskStatusList(Prettifiable):
         A TaskStatusList is iterable; the iterator will return tasks in
         timestamp order. TaskStatus objects can be looked up by task_name.
         A TaskStatusList is assumed to represent the tasks for a single
-        transaction: there should be at most one active task.
+        transaction and packet: there should be at most one active task.
 
         :param tasks: TaskStatus objects or dicts
         :type tasks: list, optional
         """
+
+        self.amie_transaction_id = None
+        self.amie_packet_id = None
+        self.job_id = None
+        self.amie_packet_type = None
+        self.timestamp = None
         self.tasks_by_name = {}
         if tasks is not None:
             self.put(tasks)
@@ -285,6 +293,18 @@ class TaskStatusList(Prettifiable):
                 raise TypeError(msg)
 
         for ts in ts_list:
+            trid = ts['amie_transaction_id']
+            timestamp = int(ts['timestamp'])
+            if not self.amie_transaction_id:
+                self.amie_transaction_id = trid
+                self.amie_packet_id = ts['amie_packet_id']
+                self.job_id = ts['job_id']
+                self.amie_packet_type = ts['amie_packet_type']
+            elif self.amie_transaction_id != trid:
+                msg="TaskStatusList members must be part of one transaction"
+                raise ValueError(msg)
+            if not self.timestamp or self.timestamp < timestamp:
+                self.timestamp = timestamp
             task_name = ts['task_name']
             existing_ts = self.get(task_name)
             if existing_ts is None or \
@@ -303,9 +323,11 @@ class TaskStatusList(Prettifiable):
                 return ts
         return None
 
-    def get_amie_transaction_ids(self) -> list:
-        """Return amie_transaction_ids from all tasks"""
-        atridlist = [ts['amie_transaction_id'] \
-                     for ts in self.tasks_by_name.values()]
-        return set(atridlist)
+    def get_amie_transaction_id(self) -> str:
+        """Return amie_transaction_id"""
+        return self.amie_transaction_id
+
+    def get_timestamp(self) -> int:
+        """Return lastest task timestamp"""
+        return self.timestamp
             
