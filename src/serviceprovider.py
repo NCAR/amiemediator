@@ -39,7 +39,7 @@ class ServiceProviderIF(ABC):
 
     Note that the amiemediator code proper does not itself maintain persistent
     state; it relies on the remote AMIE service to maintain persistent state
-    for AMIE packets, and for the local ServiceProvider implementation to
+    for AMIE packets, and on the local ServiceProvider implementation to
     maintain persistent state for any tasks submitted to it. At run time,
     the mediator code (see :class:`~mediator.AMIEMediator`) queries the
     ServiceProvider for its task data using the get_tasks() method, and this

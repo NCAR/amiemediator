@@ -8,5 +8,8 @@
 README.md
 sp
 gendoc/**
+src/amie.rst
+src/viewpackets.rst
+src/test-scenario.rst
 venv/**
 **/__pycache__

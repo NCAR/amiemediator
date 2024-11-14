@@ -105,17 +105,22 @@ class TaskStatus(AMIEParmDescAware, dict):
             'task_state',
             'timestamp'
             ])
+    
     def __init__(self, *args, **kwargs):
         """Create an AMIEMod Service Provider TaskStatus object
 
         When a request is submitted to a Service Provider for a
         potentially long-lived task, the Service Provider will
-        assign a unique ID to the task. AMIEMod can use this task
+        assign a unique ID to the task. The moderator can use this task
         ID to poll the Service Provider for the status of the task,
         which is described by a TaskStatus object.
 
         A Service Provider should use this constructor to create
         a TaskStatus object.
+
+        Tasks are expected to store the intermediate state data they
+        produce in a list of Product objects.
+        
         If the product list contains a "FAILED" or "ERRORED" product, the
         task_state will be set to "failed" or "errored" respectively. If a
         task_state of "failed" or "errored" is set explicitly and there is

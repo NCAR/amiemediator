@@ -5,7 +5,8 @@ USER root
 
 RUN apt-get -y --allow-releaseinfo-change update && \
     apt-get -y install \
-      git
+      git \
+      make
 
 ARG PACKAGE=amiemediator
 ARG IMAGE=ghcr.io/ncar/amiemediator
@@ -35,20 +36,15 @@ ENV TZ=${TZ} \
     PYGROUP=${PYGROUP} \
     PYGROUPID=${PYGROUPID} \
     PYTHONPYCACHEPREFIX=/tmp \
-    PYTHONPATH=${PACKAGE_DIR}/src
-
-#RUN pip install pdoc
-#RUN pip install pdoc-markdown
-#    python3 -m pip install --upgrade build ; \
-#    python3 -m build
-
+    PYTHONPATH=${PACKAGE_DIR}/src \
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/amiemediator/bin
 
 RUN mkdir -p ${PACKAGE_DIR} \
              ${PACKAGE_DIR}/bin \
              ${PACKAGE_DIR}/src \
              ${PACKAGE_DIR}/test
 
-COPY config.ini pip-packages \
+COPY config.ini pip-packages entrypoint.sh \
               ${PACKAGE_DIR}/
 COPY bin      ${PACKAGE_DIR}/bin/
 COPY src      ${PACKAGE_DIR}/src
@@ -57,7 +53,7 @@ COPY runtests ${PACKAGE_DIR}/
 
 RUN pip install --upgrade pip
 RUN while read pkg ; do \
-        pip install --root-user-action=ignore ${pkg} ; \
+        pip install --upgrade --root-user-action=ignore ${pkg} ; \
     done < ${PACKAGE_DIR}/pip-packages
 
 WORKDIR ${PACKAGE_DIR}
@@ -86,10 +82,4 @@ RUN set -e ; \
 
 USER $PYUSER
 
-#RUN cd ${PACKAGE_DIR}
-#RUN    /usr/local/sweet/bin/gendoc -v >gendoc/.log 2>&1 ; \
-#    chown -R $MYSQL_USER:$MYSQL_GROUP gendoc
-
-
-#CMD [ "python", "/usr/local/amie-sam-mediator/bin/amie" ]
-CMD [ "/bin/bash" ]
+ENTRYPOINT [ "/usr/local/amiemediator/entrypoint.sh" ]

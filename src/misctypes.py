@@ -36,6 +36,9 @@ class DateTime(str):
 
     
 class TimeUtil(object):
+    """
+    Miscellaneous time-related functions
+    """
 
     def sleep(self, secs):
         """sleep() proxy - reimplement in subclass for testing"""

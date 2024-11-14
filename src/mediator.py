@@ -7,6 +7,7 @@ from amieclient.packet.base import Packet as AMIEPacket
 from misctypes import (DateTime, TimeUtil)
 from miscfuncs import to_expanded_string
 from retryingproxy import RetryingServiceProxy
+from configdefaults import DFLT
 from amieparms import get_packet_keys
 from taskstatus import (State, TaskStatus)
 from serviceprovider import (ServiceProvider, SPSession)
@@ -17,20 +18,6 @@ from transactionmanager import TransactionManager
 from packetmanager import (ActionablePacket, PacketManager)
 from packethandler import (PacketHandlerError, PacketHandler)
 
-_config_defaults = {
-    "pause_max": 3600,
-    "amie_sleep_max": 3600,
-    "amie_min_retry_delay": 60,
-    "amie_max_retry_delay": 3600,
-    "amie_retry_time_max": 14400,
-    "amie_idle_loop_delay": 3600,
-    "amie_busy_loop_delay": 60,
-    "amie_reply_delay": 10,
-    "snapshot_dir": "/tmp/amiemediator",
-    "sp_min_retry_delay": 60,
-    "sp_max_retry_delay": 3600,
-    "sp_retry_time_max": 14400,
-    }
 
 class AMIESession(RetryingServiceProxy):
     """Context Manager class for calling the AMIE client methods"""
@@ -66,8 +53,8 @@ class AMIEMediator(object):
         :type timeutil: TimeUtil or None
         """
         
-        for attr in _config_defaults:
-            val = config.get(attr,_config_defaults[attr])
+        for attr in DFLT:
+            val = config.get(attr,DFLT[attr])
             setattr(self,attr,val)
 
         self.logger = logging.getLogger(__name__)
@@ -75,9 +62,9 @@ class AMIEMediator(object):
         self.amie_client = amie_client
         self.site_name = self.amie_client.site_name
         AMIESession.configure(self.amie_client,
-                              self.amie_min_retry_delay,
-                              self.amie_max_retry_delay,
-                              self.amie_retry_time_max)
+                              self.min_retry_delay,
+                              self.max_retry_delay,
+                              self.retry_time_max)
         self.sp = service_provider
         self.timeutil = TimeUtil() if timeutil is None else timeutil
         if service_provider:
@@ -87,9 +74,9 @@ class AMIEMediator(object):
                                 self.sp_retry_time_max)
 
         self.amie_wait = WaitParms(
-            auto_update_delay=self.amie_reply_delay,
-            human_action_delay=self.amie_busy_loop_delay,
-            idle_delay=self.amie_idle_loop_delay,
+            auto_update_delay=self.reply_delay,
+            human_action_delay=self.busy_loop_delay,
+            idle_delay=self.idle_loop_delay,
             timeutil=self.timeutil)
 
         self.transaction_manager = TransactionManager(self.amie_wait)

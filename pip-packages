@@ -1,4 +1,5 @@
 sphinx
+myst-parser
 urllib3
 pprintpp
 git+https://github.com/XSEDE/amieclient.git@v0.6.1

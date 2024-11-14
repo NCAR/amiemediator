@@ -37,7 +37,7 @@ HELP_TEXT="
         as the name of the virtual environment directory. Otherwise, the name
         will be \"venv\" under the amiemediator package directory; this
         directory and its contents are excluded from git and docker processing
-        (see .gitignore and.dockerignore).
+        (see .gitignore and .dockerignore).
 
         The following arguments are supported:
 

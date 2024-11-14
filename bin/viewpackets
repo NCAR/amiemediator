@@ -15,12 +15,16 @@ from pathlib import Path
 from config import ConfigLoader
 from miscfuncs import truthy, to_expanded_string
 
-PROG = "viewpackets"
+PROG     = "viewpackets"
+PROG_UNL = "==========="
 DESC = "View actionable packets"
 USAGE1 = PROG + " [-c|--configfile=<file>] [-l|--loop] [-d|--delay=sec] [key]"
 USAGE2 = PROG + " -h|--help"
-USAGE = f'''Usage: {USAGE1}
+USAGE = f'''
+       {USAGE1}
+
          or
+
        {USAGE2}'''
 
 DEFAULT_DELAY = 60
@@ -33,70 +37,86 @@ LIST_TASK_FORMAT =     "  {0:<40} {1:<11} {2}"
 
 dd = str(DEFAULT_DELAY)
 
-HELP_TEXT = f'''
-{PROG}: View actionable packets
-{USAGE}
-
-The "amie" program mediates between the AMIE server and the local service
+INTRO_TEXT = f'''
+The ``amie`` program mediates between the AMIE server and the local service
 provider; specifically, it retrieves AMIE packets from the AMIE server, and
 for each packet it triggers a set of operations on the service provider.
     
 When an operation cannot be completed immediately, the service provider will
-create a "task" object. The "amie" program will automatically monitor the
+create a "task" object. The ``amie`` program will automatically monitor the
 status of each task until all work for the packet is complete and a reply can
 be sent back to the AMIE server.
 
-When "amie" accepts an AMIE packet for work, it converts it into an
-"ActionablePacket" object and ties any associated tasks to this object.
-Whenever an ActionablePacket is created/modified, "amie" writes/updates a
+When ``amie`` accepts an AMIE packet for work, it converts it into an
+``ActionablePacket`` object and ties any associated tasks to this object.
+Whenever an ActionablePacket is created/modified, ``amie`` writes/updates a
 "snapshot" file that captures the relevant state of the ActionablePacket as
 readable text. All snapshot files are written to a directory identified in the
-"amie" configuration file ("snapshot_dir"). When work for a packet is complete,
-its associated ActionablePacket object is destroyed and the corresponding
-snapshot file is removed.
+``amie`` configuration file (``snapshot_dir``). When work for a packet is
+complete, its associated ``ActionablePacket`` object is destroyed and the
+corresponding snapshot file is removed.
 
-The {PROG} program simply monitors the snapshot directory and prints what
-it finds.
-    
-  -c|--configfile : Configuration ("ini") file. If not specified, the
-                    "CONFIG_INI" environment variable will be checked for the
-                    name of a file; otherwise, "./config.ini" is assumed. The
-                    configuration is expected to contain a "[mediator]" section
-                    with a "snapshot_dir" parameter that identifies the
-                    directory containing the snapshot files.
-  -l|--loop       : Normally, {PROG} lists the current status of packets or
-                    the contents of a specfic packet and then exists. The
-                    --loop flag will cause {PROG} to continue reading
-                    snapshots and updating the display until a keyboard
-                    interrupt is encountered or, if a single packet is being
-                    displayed, the snapshot is removed. In addition, if
-                    standard output is a terminal, the "clear" command is
-                    effectively executed at the start of each iteration.
-                    Updates are displayed when an update is detected or after
-                    the -d|--delay period (default={dd} secs), whichever comes
-                    first.
-  -d|--delay=sec    The maximum time to wait in seconds before refreshing the
-                    display when in "loop" mode (default={dd})
-  -h|--help       : Display help test and quit
-  key             : If present, the packet with the given name is displayed
-                    in full. Without this argument, a list of all packets and
-                    their status is displayed.
+The ``{PROG}`` program simply monitors the snapshot directory and prints
+what it finds.
+'''
+
+LOCALSITE_OPTIONS_TEXT = f'''
+  ``-c|--configfile``
+        Configuration (``ini``) file. If not specified, the ``CONFIG_INI``
+        environment variable will be checked for the name of a file; otherwise,
+        ``./config.ini`` is assumed. The configuration is expected to contain a
+        ``[mediator]`` section with a ``snapshot_dir`` parameter that
+        identifies the directory containing the snapshot files.'''
+OPTIONS_TEXT = f'''
+  ``-l|--loop``
+      Normally, ``{PROG}`` lists the current status of packets or the
+      contents of a specfic packet and then exists. The ``--loop`` flag will
+      cause ``{PROG}`` to continue reading snapshots and updating the
+      display until a keyboard interrupt is encountered or, if a single packet
+      is being displayed, the snapshot is removed. In addition, if standard
+      output is a terminal, the ``clear`` command is effectively executed at
+      the start of each iteration. Updates are displayed when an update is
+      detected or after the ``-d|--delay`` period (default={dd} secs),
+      whichever comes first.
+
+  ``-d|--delay=`` *sec*
+      The maximum time to wait in seconds before refreshing the display when
+      in "loop" mode (default={dd})
+
+  ``-h|--help``
+      Display help test and quit.
+
+  ``key``
+      If present, the packet with the given name is displayed in full. Without
+      this argument, a list of all packets and their status is displayed.
     '''
 
 envUSAGE = os.environ.get('USAGE',None)
 if envUSAGE is not None:
     USAGE = envUSAGE
 
-envHELP_TEXT = os.environ.get('HELP_TEXT',None)
-if envHELP_TEXT is not None:
-    HELP_TEXT = envHELP_TEXT
+envINTRO_TEXT = os.environ.get('INTRO_TEXT',None)
+if envINTRO_TEXT is not None:
+    INTRO_TEXT = envINTRO_TEXT
+
+envLOCALSITE_CONFIG_TEXT = os.environ.get('LOCALSITE_CONFIG_TEXT',None)
+if envLOCALSITE_CONFIG_TEXT is not None:
+    LOCALSITE_CONFIG_TEXT = envLOCALSITE_CONFIG_TEXT
+
+envLOCALSITE_ENV_TEXT = os.environ.get('LOCALSITE_ENV_TEXT',None)
+if envLOCALSITE_ENV_TEXT is not None:
+    LOCALSITE_ENV_TEXT = envLOCALSITE_ENV_TEXT
 
 def help():
     help_text = f'''
-{PROG}: {DESC}
-{USAGE}
-
-{HELP_TEXT}
+{PROG}
+{PROG_UNL}
+    {DESC}
+    
+Usage: {USAGE}
+{INTRO_TEXT}
+{LOCALSITE_OPTIONS_TEXT}
+{OPTIONS_TEXT}
     '''
     print(help_text)
 

@@ -56,8 +56,10 @@ If AMIEMEDIATOR_DIR is not set, ${WRAPPERNAME} will search
 \$PACKAGE_DIR/../amiemediator and \$PACKAGE_DIR/../../amiemediator.
 
 All amiemediator programs ("amie", "viewpackets", etc.) support environment
-variables CONFIG_INI, USAGE, and HELP_TEXT. The USAGE and HELP_TEXT variables
-are used by the "--help" command-line option if they are set.
+variables CONFIG_INI, USAGE, LOCALSITE_INTRO_TEXT, INTRO_TEXT,
+LOCALSITE_CONFIG_TEXT, and LOCAL_SITE_ENV_TEXT. CONFIG_INI identifies the
+configuration file, while the other variables are used by the "--help"
+command-line option if they are set.
 
 EOF
     echo $PROG

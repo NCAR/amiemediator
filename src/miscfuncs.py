@@ -7,14 +7,19 @@ _re_obj = re.compile('^<[^ ]+ object at 0x[0-9a-f]+>$')
 _pp = pprint.PrettyPrinter(indent=2)
 
 class Prettifiable(ABC):
+    """Abstract Base Class that define pformat() and vformat methods"""
+    
     @abstractmethod
     def pformat(self):
+        """Abstract method to convert object to formatted string"""
         pass
 
     def vpformat(self):
+        """Convert object to verbose formatted string"""
         self.pformat()
 
 def truthy(val):
+    """Return True if the given value looks to be true, False otherwise"""
     if val is None:
         return False
     elif type(val) is str:
@@ -29,9 +34,12 @@ def truthy(val):
         return b
 
 def pformat(arg, **kwargs):
+    """Use pprint.PrettyPrinter(indent=2) to convert args to a formatted string
+    """
     return _pp.pformat(arg,kwargs)
 
 def to_expanded_string(val):
+    """Easy-to-use conversion to formatted string, useful for debugging"""
     if val is None:
         return '(None)'
     elif isinstance(val,str):

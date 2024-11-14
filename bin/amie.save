@@ -25,25 +25,15 @@ USAGE5 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] --showconfig"
 USAGE6 = PROG + " -h|--help"
 USAGE = f'''
        {USAGE1}
-
          or
-
        {USAGE2}
-
          or
-
        {USAGE3}
-
          or
-
        {USAGE4}
-
          or
-
        {USAGE5}
-
          or
-
        {USAGE6}'''
 
 
@@ -122,7 +112,7 @@ The ``[logging]`` section supports the following keys:
       File destination for root logger.
 
   ``filemode``
-      File mode for root logger. Default = ``a``.
+      File mode for root logger. Default=``a``.
 
   ``format``
       Format string for the root logger.
@@ -131,7 +121,7 @@ The ``[logging]`` section supports the following keys:
       Date/time format for the root logger.
 
   ``style``
-      Style to use for root logger, if format is given. Default = ``%``.
+      Style to use for root logger, if format is given. Default=``%``.
 
   ``level``
       Logging level for the root logger
@@ -140,30 +130,29 @@ The ``[logging]`` section supports the following keys:
       If ``filename`` is given, encoding to use when opening file for the root
       logger.
 
-  *logger* ``.filename``
+  *logger*``.filename``
       File destination for the indicated logger.
 
-  *logger* ``.filemode``
-      File mode for the indicated logger. Default = ``a``.
+  *logger*``.filemode``
+      File mode for the indicated logger. Default=``a``.
 
-  *logger* ``.format``
+  *logger*``.format``
       Format string for the indicated logger.
 
-  *logger* ``.datefmt``
+  *logger*``.datefmt``
       Date/time format for the indicated logger.
 
-  *logger* ``.style``
-      Style to use for the indicated logger, if format is given. Default =
-      ``%``.
+  *logger*``.style``
+      Style to use for the indicated logger, if format is given. Default=``%``.
 
-  *logger* ``.level``
+  *logger*``.level``
       Logging level for the indicated logger.
 
-  *logger* ``.encoding``
-      If *logger* ``.filename`` is given, encoding to use when opening file for
+  *logger*``.encoding``
+      If *logger*``.filename` is given, encoding to use when opening file for
       the indicated logger.
 
-  *logger* ``.propagate``
+  *logger*``.propagate``
       Set the ``propagate`` attribute on the logger to the given boolean value.
 
 See the standard Python logging facility (Lib/logging) for more details.

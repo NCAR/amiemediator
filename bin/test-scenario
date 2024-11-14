@@ -11,13 +11,17 @@ from amieclient import AMIEClient
 from serviceprovider import ServiceProvider
 from mediator import AMIEMediator
 
-PROG = "test-scenario"
+PROG     = "test-scenario"
+PROG_UNL = "============="
 DESC = "Create or reset an AMIE API test scenario"
 USAGE = os.environ.get('USAGE',None)
 USAGE1 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] scenario"
 USAGE2 = PROG + " -h|--help"
-USAGE = f'''Usage: {USAGE1}
+USAGE = f'''
+       {USAGE1}
+
          or
+
        {USAGE2}'''
 
 AMIE_TEST_URL = "https://a3mdev.xsede.org/amie-api-test"
@@ -27,44 +31,66 @@ SCENARIOS = [
     "request_person_merge",
     "request_user_modify"
     ]
-SCENARIOS_HELP_LIST = "\n                      ".join(SCENARIOS)
+indent = "          "
+sep = "``\n" + indent + "``"
+SCENARIOS_HELP_LIST = "``" + sep.join(SCENARIOS) + "``"
 
-HELP_TEXT = f'''
-The "AMIE-API-Testing.pdf" document describes how to test your site's AMIE
+INTRO_TEXT = f'''
+The ``AMIE-API-Testing.pdf`` document describes how to test your site's AMIE
 code using a set of "test scenarios". This utility will create a test scenario
 as described in the document, or reset test data.
+'''
+LOCALSITE_OPTIONS_TEXT = f'''
+The ``-c|--configuration`` and ``-s|--site`` arguments are treated just as the
+bin/amie program treats them. Run ``amie --help`` for more details.
 
-The -c|--configuration and -s|--site arguments are treated just as the
-bin/amie program treats them. Run "amie --help" for more details.
+  ``-c|--configfile=`` *file*
+      Configuration (``ini``) file. If not specified, the ``CONFIG_INI``
+      environment variable will be checked for the name of a file; otherwise,
+      ``./config.ini`` is assumed. The ``amie_url`` parameter in the
+      ``[amieclient]`` section must be: ``{AMIE_TEST_URL}``
 
-  -c|--configfile : Configuration ("ini") file. If not specified, the
-                    "CONFIG_INI" environment variable will be checked for the
-                    name of a file; otherwise, "./config.ini" is assumed.
-                    The "amie_url" parameter in the "[amieclient]" must be
-                    "{AMIE_TEST_URL}".
-  -s|--site       : Local site name. If not specified, the configuration
-                    file must have a "site" property in a "[amieclient]"
-                    section.
-  -h|--help       : Display help test and quit
-  scenario        : The name of the test scenario to create, or the word
-                    "reset". Known test scenarios are:
-                      {SCENARIOS_HELP_LIST}
+  ``-s|--site=`` *site*
+        Local site name. If not specified, the configuration file must have a
+        ``site`` property in a ``[amieclient]`` section.'''
+OPTIONS_TEXT = f'''
+  ``-h|--help``
+      Display help test and quit scenario.
+
+  ``scenario``
+      The name of the test scenario to create, or the word ``reset``. Known
+      test scenarios are:
+
+          {SCENARIOS_HELP_LIST}
     '''
 
 envUSAGE = os.environ.get('USAGE',None)
 if envUSAGE is not None:
     USAGE = envUSAGE
 
-envHELP_TEXT = os.environ.get('HELP_TEXT',None)
-if envHELP_TEXT is not None:
-    HELP_TEXT = envHELP_TEXT
+envINTRO_TEXT = os.environ.get('INTRO_TEXT',None)
+if envINTRO_TEXT is not None:
+    INTRO_TEXT = envINTRO_TEXT
+
+envLOCALSITE_CONFIG_TEXT = os.environ.get('LOCALSITE_CONFIG_TEXT',None)
+if envLOCALSITE_CONFIG_TEXT is not None:
+    LOCALSITE_CONFIG_TEXT = envLOCALSITE_CONFIG_TEXT
+
+envLOCALSITE_ENV_TEXT = os.environ.get('LOCALSITE_ENV_TEXT',None)
+if envLOCALSITE_ENV_TEXT is not None:
+    LOCALSITE_ENV_TEXT = envLOCALSITE_ENV_TEXT
+    
 
 def help():
     help_text = f'''
-{PROG}: {DESC}
-{USAGE}
-
-{HELP_TEXT}
+{PROG}
+{PROG_UNL}
+    {DESC}
+    
+Usage: {USAGE}
+{INTRO_TEXT}
+{LOCALSITE_OPTIONS_TEXT}
+{OPTIONS_TEXT}
     '''
     print(help_text)
 
