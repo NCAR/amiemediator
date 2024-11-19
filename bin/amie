@@ -15,13 +15,13 @@ PROG = "amie"
 PROG_UNL = "===="
 DESC = "Process AMIE packets with a custom Service Provider plugin"
 USAGE = os.environ.get('USAGE',None)
-USAGE1 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] [-o|--once]"
-USAGE2 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] " +\
+USAGE1 = PROG + " [-D] [-c|--configfile=<file>] [-s|--site=<site>] [-o|--once]"
+USAGE2 = PROG + " [-D] [-c|--configfile=<file>] [-s|--site=<site>] " +\
     "-p|--persistent"
-USAGE3 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] -l|--list"
-USAGE4 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] " +\
+USAGE3 = PROG + " [-D] [-c|--configfile=<file>] [-s|--site=<site>] -l|--list"
+USAGE4 = PROG + " [-D] [-c|--configfile=<file>] [-s|--site=<site>] " +\
     "-f|--fail=<trid>"
-USAGE5 = PROG + " [-c|--configfile=<file>] [-s|--site=<sitename>] --showconfig"
+USAGE5 = PROG + " [-D] [-c|--configfile=<file>] [-s|--site=<site>] --showconfig [-X]"
 USAGE6 = PROG + " -h|--help"
 USAGE = f'''
        {USAGE1}
@@ -46,6 +46,8 @@ USAGE = f'''
 
        {USAGE6}'''
 
+DEBUG_MODE = False
+
 
 LOCALSITE_INTRO_TEXT = ""
 INTRO_TEXT = f'''
@@ -54,6 +56,11 @@ The **{PROG}** program mediates between the central AMIE service and the local
 polls the AMIE service for updates, breaks down AMIE requests into smaller
 tasks that it submits to the service provider back-end, assembles task results
 into AMIE response packets, and sends responses back to the AMIE service.'''
+
+DEBUG_TEXT = f'''
+  ``-D``
+      If included, add a standard error handler to all loggers with level
+      set to DEBUG.'''
 
 LOCALSITE_OPTIONS_TEXT = f'''
   ``-c|--configfile``
@@ -85,7 +92,12 @@ OPTIONS_TEXT = f'''
       Set the status of the indicated transacton to ``Failed``, then exit.
 
   ``--showconfig``
-      Display the current configuration and exit.
+      Display the current configuration and exit. Unless the ``-X`` flag is
+      included, parameters that are flagged as secrets have their values hidden.
+
+  ``-X``
+      If included with --showconfig, display all configuration parameter
+      values, including those flagged as secret.
 
   ``-h|--help``
       Display help test and quit
@@ -232,6 +244,11 @@ All other keys in the ``[localsite]`` section are unique to the
 Service Provider.
 '''
 
+SECRET_PARMS = [ 'api_key' ]
+LOCALSITE_SECRET_PARMS = os.environ.get('LOCALSITE_SECRET_PARMS',None)
+if LOCALSITE_SECRET_PARMS is not None:
+    SECRET_PARMS.extend(LOCALSITE_SECRET_PARMS.split(" "))
+
 ENVVAR_TEXT = f'''
 Environment variables with names beginning with ``GLOBAL_``, ``AMIECLIENT_`` or
 ``LOCALSITE_`` are treated as "secret" configuration variables that can be
@@ -262,6 +279,10 @@ envINTRO_TEXT = os.environ.get('INTRO_TEXT',None)
 if envINTRO_TEXT is not None:
     INTRO_TEXT = envINTRO_TEXT
 
+envLOCALSITE_OPTIONS_TEXT = os.environ.get('LOCALSITE_OPTIONS_TEXT',None)
+if envLOCALSITE_OPTIONS_TEXT is not None:
+    LOCALSITE_OPTIONS_TEXT = envLOCALSITE_OPTIONS_TEXT
+
 envLOCALSITE_CONFIG_TEXT = os.environ.get('LOCALSITE_CONFIG_TEXT',None)
 if envLOCALSITE_CONFIG_TEXT is not None:
     LOCALSITE_CONFIG_TEXT = envLOCALSITE_CONFIG_TEXT
@@ -279,6 +300,8 @@ def help():
 Usage: {USAGE}
 {LOCALSITE_INTRO_TEXT}
 {INTRO_TEXT}
+Options
+-------{DEBUG_TEXT}
 {LOCALSITE_OPTIONS_TEXT}
 {OPTIONS_TEXT}
 Configuration
@@ -300,6 +323,7 @@ def main(argv):
     list = run_info['list']
     fail = run_info['fail']
     showconfig = run_info['showconfig']
+    hide_secrets = not run_info['include_config_secrets']
     combined_config = run_info['config']
 
     global_config = combined_config['global']
@@ -317,16 +341,11 @@ def main(argv):
 
     if showconfig:
         pp = pprint.PrettyPrinter(indent=4)
-        print("global:")
-        print(pp.pprint(global_config))
-        print("amieclient:")
-        print(pp.pprint(amie_config))
-        print("localsite:")
-        print(pp.pprint(localsite_config))
-        print("mediator:")
-        print(pp.pprint(mediator_config))
-        print("logging:")
-        print(pp.pprint(logging_config))
+        show_config(pp, hide_secrets, 'global', global_config)
+        show_config(pp, hide_secrets, 'amie', amie_config)
+        show_config(pp, hide_secrets, 'localsite', localsite_config)
+        show_config(pp, hide_secrets, 'mediator', mediator_config)
+        show_config(pp, hide_secrets, 'logging', logging_config)
         sys.exit(0)
     
     configure_logging(**logging_config)
@@ -377,6 +396,8 @@ def process_command_line_and_configuration(argv):
     return run_info
 
 def process_command_line(argv):
+    global DEBUG_MODE
+    
     argv.pop(0)
     configfile = os.environ.get('CONFIG_INI','config.ini')
     site = None
@@ -385,8 +406,9 @@ def process_command_line(argv):
     list = False
     fail = False
     showconfig = False
+    include_config_secrets = False
     try:
-        opts,args = getopt.getopt(argv,"hoplf:c:s:",
+        opts,args = getopt.getopt(argv,"Dhoplf:c:s:X",
                                   [
                                       "help",
                                       "once",
@@ -405,6 +427,8 @@ def process_command_line(argv):
         if opt in ("-h","--help"):
             help()
             sys.exit(0)
+        elif opt in ("-D"):
+            DEBUG_MODE = True
         elif opt in ("-c","--configfile"):
             configfile = arg
         elif opt in ("-s","--site"):
@@ -419,9 +443,14 @@ def process_command_line(argv):
             fail = arg
         elif opt in ("--showconfig"):
             showconfig = True
+        elif opt in ("-X"):
+            include_config_secrets = True
+
+    if DEBUG_MODE:
+        sys.stderr.write("DEBUG: configuration file: " + configfile + "\n")
 
     if not Path(configfile).is_file():
-        prog_err(configfile + ": no such file")
+        prog_err("configuration file '" + configfile + "' does not exist")
         sys.exit(2)
 
     return {
@@ -431,9 +460,23 @@ def process_command_line(argv):
         'persistent': persistent,
         'list': list,
         'fail': fail,
-        'showconfig': showconfig
+        'showconfig': showconfig,
+        'include_config_secrets': include_config_secrets
     }
 
+def show_config(pp, hide_secrets, name, config):
+    if hide_secrets:
+        nconfig = dict()
+        for key in config.keys():
+            if key in SECRET_PARMS:
+                nconfig[key] = "*"
+            else:
+                nconfig[key] = config[key]
+        config = nconfig
+    print(name + ":")
+    pp.pprint(config)
+    print("")
+    
 
 def configure_logging(**config):
     rootconfig = dict()
@@ -472,6 +515,14 @@ def configure_logger(name, config):
         formatter = logging.Formatter(fmt=format, datefmt=datefmt, style=style)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
+    if DEBUG_MODE:
+        D_handler = logging.StreamHandler(sys.stderr)
+        D_format = "%%(asctime)s %%(levelname)s:%%(name)s:%%(message)s "
+        D_formatter = logging.Formatter(fmt=format)
+        D_handler.setFormatter(D_formatter)
+        D_handler.setLevel(logging.DEBUG)
+        logger.addHandler(D_handler)
+
     level = config.get('level',None)
     if level:
         logger.setLevel(level)

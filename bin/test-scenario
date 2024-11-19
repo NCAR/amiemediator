@@ -72,14 +72,9 @@ envINTRO_TEXT = os.environ.get('INTRO_TEXT',None)
 if envINTRO_TEXT is not None:
     INTRO_TEXT = envINTRO_TEXT
 
-envLOCALSITE_CONFIG_TEXT = os.environ.get('LOCALSITE_CONFIG_TEXT',None)
-if envLOCALSITE_CONFIG_TEXT is not None:
-    LOCALSITE_CONFIG_TEXT = envLOCALSITE_CONFIG_TEXT
-
-envLOCALSITE_ENV_TEXT = os.environ.get('LOCALSITE_ENV_TEXT',None)
-if envLOCALSITE_ENV_TEXT is not None:
-    LOCALSITE_ENV_TEXT = envLOCALSITE_ENV_TEXT
-    
+envLOCALSITE_OPTIONS_TEXT = os.environ.get('LOCALSITE_OPTIONS_TEXT',None)
+if envLOCALSITE_OPTIONS_TEXT is not None:
+    LOCALSITE_OPTIONS_TEXT = envLOCALSITE_OPTIONS_TEXT
 
 def help():
     help_text = f'''
@@ -89,7 +84,8 @@ def help():
     
 Usage: {USAGE}
 {INTRO_TEXT}
-{LOCALSITE_OPTIONS_TEXT}
+Options
+-------{LOCALSITE_OPTIONS_TEXT}
 {OPTIONS_TEXT}
     '''
     print(help_text)
