@@ -447,6 +447,10 @@ def process_command_line(argv):
             include_config_secrets = True
 
     if DEBUG_MODE:
+        sys.stderr.write("DEBUG: sys.path:\n")
+        for path in sys.path:
+            sys.stderr.write("DEBUG:     " + path + "\n")
+            
         sys.stderr.write("DEBUG: configuration file: " + configfile + "\n")
 
     if not Path(configfile).is_file():

@@ -452,6 +452,8 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
 
         localsite_package = config['package']
         localsite_module = config['module']
+        self.logger.debug("(localsite_module,localsite_package)=(" + \
+                          localsite_module + ',' + localsite_package + ")")
 
         localsite = importlib.import_module(localsite_module,localsite_package)
         self.implem = localsite.ServiceProvider()
