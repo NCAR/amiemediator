@@ -473,7 +473,7 @@ def show_config(pp, hide_secrets, name, config):
             else:
                 nconfig[key] = config[key]
         config = nconfig
-    print(name + ":")
+    print(name, end=": ")
     pp.pprint(config)
     print("")
     
