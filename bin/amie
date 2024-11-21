@@ -535,7 +535,7 @@ def configure_logger(name, config):
     if DEBUG_MODE:
         D_handler = logging.StreamHandler(sys.stderr)
         D_format = "%%(asctime)s %%(levelname)s:%%(name)s:%%(message)s "
-        D_formatter = logging.Formatter(fmt=format)
+        D_formatter = logging.Formatter(fmt=D_format)
         D_handler.setFormatter(D_formatter)
         D_handler.setLevel(logging.DEBUG)
         logger.addHandler(D_handler)
