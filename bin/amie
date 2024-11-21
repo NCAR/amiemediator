@@ -46,7 +46,7 @@ USAGE = f'''
 
        {USAGE6}'''
 
-DEBUG_MODE = False
+DEBUG_MODE = truthy(os.environ.get("DEBUG_MODE","f"))
 
 
 LOCALSITE_INTRO_TEXT = ""
@@ -250,6 +250,9 @@ if LOCALSITE_SECRET_PARMS is not None:
     SECRET_PARMS.extend(LOCALSITE_SECRET_PARMS.split(" "))
 
 ENVVAR_TEXT = f'''
+If ``DEBUG_MODE`` has a "truthy" value, "debug mode" is enabled, as if the
+``-D`` command-line option had been provided.
+
 Environment variables with names beginning with ``GLOBAL_``, ``AMIECLIENT_`` or
 ``LOCALSITE_`` are treated as "secret" configuration variables that can be
 interpolated: the name of the configuration variable is the environment
@@ -339,13 +342,22 @@ def main(argv):
 
     logging_config = combined_config['logging']
 
+    if showconfig or DEBUG_MODE:
+        if not showconfig:
+            st = sys.stderr
+            prefix = "DEBUG: "
+            hide_secrets = False
+            pp = pprint.PrettyPrinter(indent=4, stream=st)
+        else:
+            st = sys.stdout
+            prefix = ""
+            pp = pprint.PrettyPrinter(indent=4)
+        show_config(st, pp, hide_secrets, prefix, 'global', global_config)
+        show_config(st, pp, hide_secrets, prefix, 'amie', amie_config)
+        show_config(st, pp, hide_secrets, prefix, 'localsite', localsite_config)
+        show_config(st, pp, hide_secrets, prefix, 'mediator', mediator_config)
+        show_config(st, pp, hide_secrets, prefix, 'logging', logging_config)
     if showconfig:
-        pp = pprint.PrettyPrinter(indent=4)
-        show_config(pp, hide_secrets, 'global', global_config)
-        show_config(pp, hide_secrets, 'amie', amie_config)
-        show_config(pp, hide_secrets, 'localsite', localsite_config)
-        show_config(pp, hide_secrets, 'mediator', mediator_config)
-        show_config(pp, hide_secrets, 'logging', logging_config)
         sys.exit(0)
     
     configure_logging(**logging_config)
@@ -365,7 +377,6 @@ def main(argv):
             service_provider.apply_config(localsite_config)
 
         mediator = AMIEMediator(mediator_config, amie_client, service_provider)
-
         if once:
             mediator.run()
         elif persistent:
@@ -470,7 +481,7 @@ def process_command_line(argv):
         'include_config_secrets': include_config_secrets
     }
 
-def show_config(pp, hide_secrets, name, config):
+def show_config(st, pp, hide_secrets, prefix, name, config):
     if hide_secrets:
         nconfig = dict()
         for key in config.keys():
@@ -479,9 +490,9 @@ def show_config(pp, hide_secrets, name, config):
             else:
                 nconfig[key] = config[key]
         config = nconfig
-    print(name, end=": ")
+    print(prefix + name + ": ", file=st)
     pp.pprint(config)
-    print("")
+    print("", file=st)
     
 
 def configure_logging(**config):
