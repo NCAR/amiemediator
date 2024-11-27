@@ -5,6 +5,7 @@ USER root
 
 RUN apt-get -y --allow-releaseinfo-change update && \
     apt-get -y install \
+      curl \
       git \
       make
 
