@@ -410,7 +410,7 @@ class TransactionManager(object):
             transaction_target_time = transaction.loop_delay.get_target_time()
             if earliest_target_time > transaction_target_time:
                 earliest_target_time = transaction_target_time
-                
+
         loop_delay.set_target_time(earliest_target_time)
         return loop_delay
 

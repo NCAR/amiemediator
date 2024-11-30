@@ -184,6 +184,10 @@ class AMIEMediator(object):
             
             loop_delay = self.transaction_manager.get_loop_delay()
             wait_secs = loop_delay.wait_secs()
+            self.logger.debug("loop_delay: base=" +\
+                              str(loop_delay.get_base_time()) +\
+                              " target=" + str(loop_delay.get_target_time()) +\
+                              " wait_secs=" + str(wait_secs))
             if wait_secs:
                 if wait_secs > pause_max:
                     wait_secs = pause_max
@@ -194,7 +198,7 @@ class AMIEMediator(object):
                 # there is a cluster of requests, so we don't want to wait too
                 # long for them
                 if wait_secs > previous_wait_secs:
-                    ramped_wait_secs = max(previous_wait_secs * 2, 1)
+                    ramped_wait_secs = max(previous_wait_secs * 2, 4)
                     if ramped_wait_secs < wait_secs:
                         wait_secs = ramped_wait_secs
             

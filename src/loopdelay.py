@@ -34,6 +34,7 @@ class LoopDelay(object):
                               expect_human_action=False):
         if base_time == None:
             base_time = self.now()
+        self.base_time = base_time
         if immediate:
             self.target_time = base_time
             return
@@ -45,6 +46,9 @@ class LoopDelay(object):
             delay = self.wait_parms.idle_delay
         self.target_time = self.timeutil.future_time(delay, base_time)
 
+    def get_base_time(self):
+        return self.base_time
+    
     def set_target_time(self, target_time):
         self.target_time = target_time
 
