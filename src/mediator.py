@@ -283,10 +283,7 @@ class AMIEMediator(object):
 
         npackets = len(packets)
         msg = f"Got {npackets} (unvalidated) packets from AMIE server"
-        if npackets == 0:
-            self.logger.debug(msg)
-        else:
-            self.logger.info(msg)
+        self.logger.debug(msg)
 
         packets = self._filter_packets(packets)
 
