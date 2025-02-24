@@ -26,6 +26,12 @@ class RequestAccountReactivate(PacketHandler, packet_type="request_account_react
                 return ts
         person_active = apacket['person_active']
 
+        notified_user = apacket['notified_user']
+        if notified_user is None:
+            ts = sub.notify_user(spa, apacket)
+            if ts:
+                return ts
+        
         reactivate_ts = spa.reactivate_account(apacket)
         if reactivate_ts['task_state'] == "successful":
             nar = apacket.create_reply_packet()

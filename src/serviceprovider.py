@@ -16,7 +16,8 @@ from grant import (LookupGrant, ChooseOrAddGrant)
 from project import (LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
                      CreateProject, InactivateProject, ReactivateProject)
-from account import (CreateAccount, InactivateAccount, ReactivateAccount)
+from account import (CreateAccount, InactivateAccount, ReactivateAccount,
+                     NotifyUser)
 from allocation import UpdateAllocation
 from user import ModifyUser
 
@@ -427,6 +428,19 @@ class ServiceProviderIF(ABC):
         """
 
         pass
+
+    @abstractmethod
+    def notify_user(self, *args, **kwargs) -> TaskStatus:
+        """Notify user of granted access
+        
+        Refer to :class:`~account.NotifyUser` for parameter info.
+        
+        :raises ServiceProviderError: if no implementation is configured
+        :raises ServiceProviderTemporaryError: if a temporary error occurs
+        :return: A TaskStatus object
+        """
+
+        pass
     
 class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
     """Site Service Provider Facade
@@ -591,6 +605,11 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
         self._check_implem()
         valid_kwargs = MergePerson(*args, **kwargs)
         return self.implem.merge_person(**valid_kwargs)
+
+    def notify_user(self, *args, **kwargs) -> TaskStatus:
+        self._check_implem()
+        valid_kwargs = NotifyUser(*args, **kwargs)
+        return self.implem.notify_user(**valid_kwargs)
 
 
 class SPSession(RetryingServiceProxy):

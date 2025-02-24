@@ -119,6 +119,12 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         start_date = apacket['start_date']
         end_date = apacket['end_date']
         remote_site_login = apacket['remote_site_login']
+
+        notified_user = apacket['notified_user']
+        if notified_user is None:
+            ts = sub.notify_user(spa, apacket)
+            if ts:
+                return ts
         
         npc = apacket.create_reply_packet()
         npc.GrantNumber = apacket['GrantNumber']

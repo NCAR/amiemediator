@@ -55,6 +55,12 @@ class RequestAccountCreate(PacketHandler, packet_type="request_account_create"):
         remote_site_login = apacket['remote_site_login']
         account_activity_time = apacket['account_activity_time']
         project_id = apacket['project_id']
+
+        notified_user = apacket['notified_user']
+        if notified_user is None:
+            ts = sub.notify_user(spa, apacket)
+            if ts:
+                return ts
         
         nac = apacket.create_reply_packet()
         ad = apacket.get('AcademicDegree',None)

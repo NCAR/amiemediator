@@ -143,8 +143,9 @@ class UpdatePersonDNs(AMIEParmDescAware,dict):
             'timestamp',
             
             'PersonID',
-            'DnList',
             ])
+    #            'DnList',
+
     def __init__(self, **kwargs) -> dict:
         """Validate, filter, and transform arguments to ``update_person_DNs()``"""
         dict.__init__(self, **kwargs)

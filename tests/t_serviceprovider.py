@@ -342,6 +342,17 @@ class TestServiceProvider(unittest.TestCase):
         self.assertEqual(args['DeletePersonID'],rec['DeletePersonID'],
                          msg='DeletePersonID not passed in')
 
+    def test_notify_user(self):
+        sp = ServiceProvider()
+        sp.apply_config(self.config)
+        spi = sp.implem
+        rec = RPC_PKT_1['body'].copy()
+        self._add_task_info(rec)
+        ap = sp.modify_user(rec)
+        args = spi.args['notify_user']
+        self.assertEqual(args['PersonID'],rec['PersonID'],
+                         msg='PersonID not passed in')
+
     def _add_task_info(self, parms):
         parms['job_id'] = 'atid:pid'
         parms['amie_transaction_id'] = 'atid'

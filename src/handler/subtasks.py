@@ -175,3 +175,11 @@ def modify_user(spa, apacket):
         return None
     else:
         return user_ts
+
+def notify_user(spa, apacket):
+    spa.logdumper.debug("notify_user: apacket=", apacket)
+    notify_ts = spa.notify_user(apacket)
+    if notify_ts['task_state'] == "successful":
+        return None
+    else:
+        return notify_ts

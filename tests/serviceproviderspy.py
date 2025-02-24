@@ -231,4 +231,12 @@ class ServiceProvider(ServiceProviderIF):
             parms = kwargs
         return self.create_task_status(**parms)
 
+    def notify_user(self, **kwargs) -> TaskStatus:
+        self.args['notify_user'] = kwargs
+        if 'notify_user' in self.test_data:
+            parms = kwargs | self.test_data['notify_user_result']
+        else:
+            parms = kwargs
+        return self.create_task_status(**parms)
+
 
