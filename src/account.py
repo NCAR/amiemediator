@@ -111,7 +111,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'BusinessPhoneNumber',
             'Email',
             'PersonID',
-            'ProjectID',
+            'project_id',
             'RemoteSiteLogin',
             'Resource',
             'Username',
