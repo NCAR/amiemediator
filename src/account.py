@@ -110,7 +110,6 @@ class NotifyUser(AMIEParmDescAware,dict):
 
             'BusinessPhoneNumber',
             'Email',
-            'Email',
             'PersonID',
             'ProjectID',
             'RemoteSiteLogin',

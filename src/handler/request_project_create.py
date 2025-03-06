@@ -120,7 +120,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         end_date = apacket['end_date']
         remote_site_login = apacket['remote_site_login']
 
-        notified_user = apacket['notified_user']
+        notified_user = apacket.get('notified_user',None)
         if notified_user is None:
             ts = sub.notify_user(spa, apacket)
             if ts:
