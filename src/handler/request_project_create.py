@@ -114,7 +114,6 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.define_project(spa, apacket)
             if ts:
                 return ts
-        project_id = apacket['project_id']
         service_units_allocated = apacket.get('service_units_allocated',None)
         start_date = apacket['start_date']
         end_date = apacket['end_date']

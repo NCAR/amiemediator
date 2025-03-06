@@ -124,7 +124,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
-            'ProjectID',
+            'project_id',
             'PersonID',
             'RemoteSiteLogin',
             'Resource',
