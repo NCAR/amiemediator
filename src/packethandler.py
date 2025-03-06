@@ -527,6 +527,28 @@ class ServiceProviderAdapter(object):
         self._check_task_status_for_errors(ts)
         return ts
 
+    def notify_user(self, apacket) -> TaskStatus:
+        """Get the TaskStatus object from ServiceProvider.notify_user()
+
+        Notify ACCESS user
+
+        :param apacket: An "ActionablePacket"
+        :type apacket: dict 
+        :return: A TaskStatus object from the ServiceProvider task. Final
+        Products on success must include user_notified
+        """
+
+        ts = self._get_task_by_method_name("notify_user", apacket)
+        if ts['task_state'] == 'nascent':
+            request_data = self._init_task_data(ts, apacket)
+
+            with SPSession() as sp:
+                ts = sp.notify_user(**request_data)
+            apacket.add_or_update_task(ts)
+
+        self._check_task_status_for_errors(ts)
+        return ts
+
     def _check_task_status_for_errors(self, ts):
         state = ts['task_state']
         if state == "failed":
