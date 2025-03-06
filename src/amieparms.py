@@ -146,6 +146,7 @@ class AMIEParmDescAware(ParmDescAware):
         'site_org': str,
         'local_fos': str,
         'local_user_id': str,
+        'project_id': str,
         'project_name_base': str,
         'requested_amount': str,
         'requested_resource': str,
