@@ -120,7 +120,12 @@ def process_parms(allowed,required=[]):
     return real_process_parms(allowed,required)
 
 class AMIEParmDescAware(ParmDescAware):
-    """A ParmDescAware subclass that defines default parameter info"""
+    """A ParmDescAware subclass that defines default parameter info
+
+    If you need to extend the functionality of the serviceprovider interface
+    (e.g., to add a new task type) and a new parameter is needed, remember to
+    add it here. See default_parm2type and default_parm2doc below.
+    """
 
     def __init_subclass__(cls, **kwargs):
             super().__init_subclass__(**kwargs)

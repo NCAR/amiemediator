@@ -114,6 +114,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'PersonID',
             'project_id',
             'RemoteSiteLogin',
+            'Resource',
             'resource_name',
             'Username',
             'user_notified',
@@ -129,7 +130,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'project_id',
             'PersonID',
             'RemoteSiteLogin',
-            'resource_name',
+            [ 'Resource', 'resource_name' ],
             ])
     def __init__(self, *args, **kwargs) -> dict:
         """Validate, filter, and transform arguments to ``notify_user()``"""
