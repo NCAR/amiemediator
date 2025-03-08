@@ -139,6 +139,7 @@ class AMIEParmDescAware(ParmDescAware):
         'amie_packet_timestamp': DateTime,
         'amie_packet_id': str,
         'amie_transaction_id': str,
+        'contingent_resources': str,
         'job_id': str,
         'person_active': bool,
         'person_role': str,
@@ -154,6 +155,7 @@ class AMIEParmDescAware(ParmDescAware):
         'resource_name': str,
         'task_name': str,
         'timestamp': int,
+        'user_notified': bool,
         
         'Abstract': str,
         'AcademicDegree': [dict],
@@ -244,6 +246,7 @@ class AMIEParmDescAware(ParmDescAware):
                           "within an AMIE transaction",
         'amie_transaction_id': "string that uniquely identifies an AMIE " + \
                                "transaction",
+        'contingent_resources': "additional resources assigned by local site",
         'job_id': "string that uniquely identifies related set of tasks",
         'person_active': "Is person currently 'active' at the local site",
         'person_role': 'person role ("Pi" or "User")',
@@ -256,6 +259,7 @@ class AMIEParmDescAware(ParmDescAware):
         'resource_name': 'Single site resource name (from Resource)',
         'task_name': 'Task name, unique within a packet',
         'timestamp': 'Packet update time',
+        'user_notified': 'site-specific notification of user complete',
     }
     
     #: Default value for ParmDescAware.default_parm_doc
