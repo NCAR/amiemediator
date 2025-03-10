@@ -17,8 +17,11 @@ class RequestAccountReactivate(PacketHandler, packet_type="request_account_react
         
         spa = self.sp_adapter
 
-        person_id = apacket.get('PersonID',None)
-
+        person_id = apacket.get('person_id',None)
+        if person_id is None:
+            person_id = apacket.get('PersonID',None)
+            apacket['person_id'] = person_id
+            
         person_active = apacket.get('person_active',False)
         if not person_active:
             ts = sub.activate_person(spa, apacket, 'User')
@@ -26,8 +29,8 @@ class RequestAccountReactivate(PacketHandler, packet_type="request_account_react
                 return ts
         person_active = apacket['person_active']
 
-        notified_user = apacket['notified_user']
-        if notified_user is None:
+        user_notified = apacket.get('user_notified', None)
+        if user_notified is None:
             ts = sub.notify_user(spa, apacket)
             if ts:
                 return ts
