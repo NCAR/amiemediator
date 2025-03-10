@@ -112,6 +112,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'contingent_resources',
             'Email',
             'PersonID',
+            'person_id',
             'project_id',
             'ProjectID',
             'RemoteSiteLogin',
