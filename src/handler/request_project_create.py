@@ -50,6 +50,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         site_org = apacket['site_org']
         person_active = apacket.get('person_active',False)
         apacket['PersonID'] = person_id
+        apacket['PiPersonID'] = person_id
         apacket['pi_person_id'] = person_id
 
         if not person_active:
