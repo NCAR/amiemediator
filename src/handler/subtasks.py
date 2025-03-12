@@ -129,9 +129,9 @@ def define_project(spa, apacket):
     apacket['end_date'] = end_date
     apacket['remote_site_login'] = remote_site_login
 
-def lookup_project(spa, apacket):
-    spa.logdumper.debug("lookup_project: apacket=", apacket)
-    ts = spa.lookup_project(apacket)
+def lookup_project_task(spa, apacket):
+    spa.logdumper.debug("lookup_project_task: apacket=", apacket)
+    ts = spa.lookup_project_task(apacket)
     if ts:
         apacket['PiPersonID'] = ts.get_product_value('PiPersonID')
         apacket['PiRemoteSiteLogin'] = ts.get_product_value('PiRemoteSiteLogin')

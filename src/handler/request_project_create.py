@@ -29,7 +29,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         # We want to check up front for RecordID
         recordID = apacket.get('RecordID',None)
         if recordID is not None:
-            ts = sub.lookup_project(spa, apacket)
+            ts = sub.lookup_project_task(spa, apacket)
             if ts:
                 npc = build_reply(apacket)
                 return npc
