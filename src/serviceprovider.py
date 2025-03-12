@@ -13,7 +13,7 @@ from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
                     MergePerson, UpdatePersonDNs)
 from grant import (LookupGrant, ChooseOrAddGrant)
-from project import (LookupLocalFos, ChooseOrAddLocalFos,
+from project import (LookupProjectTask, LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
                      CreateProject, InactivateProject, ReactivateProject)
 from account import (CreateAccount, InactivateAccount, ReactivateAccount,
@@ -322,6 +322,25 @@ class ServiceProviderIF(ABC):
         pass
 
     @abstractmethod
+    def lookup_project_task(self, *args, **kwargs) -> TaskStatus:
+        """Return TaskStatus for a previously processed create_project task
+
+        A request_project_create packet can include a RecordID; if provided,
+        the RecordID must be recorded with the result of the operation.
+        Subsequently, if a request_project_create request is received with the
+        same RecordID, the stored result should be returned instead of
+        processing the request.
+        
+        Refer to :class:`~project.LookupProjectTask` for parameter info.
+        
+        :raises ServiceProviderError: if no implementation is configured
+        :raises ServiceProviderTemporaryError: if a temporary error occurs
+        :return: A TaskStatus object, or None if no matching task was found
+        """
+        
+        pass
+
+    @abstractmethod
     def inactivate_project(self, *args, **kwargs) -> TaskStatus:
         """Inactivate a project
         
@@ -496,8 +515,7 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
     def clear_transaction(self, amie_transaction_id):
         self._check_implem()
         self.implem.clear_transaction(amie_transaction_id)
-
-
+        
     def lookup_org(self, *args, **kwargs) -> AMIEOrg:
         self._check_implem()
         valid_kwargs = LookupOrg(*args,**kwargs)
@@ -565,6 +583,11 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
         self._check_implem()
         valid_kwargs = CreateProject(*args,**kwargs)
         return self.implem.create_project(**valid_kwargs)
+
+    def lookup_project_task(self, *args, **kwargs) -> TaskStatus:
+        self._check_implem()
+        valid_kwargs = LookupProjectTask(*args,**kwargs)
+        return self.implem.lookup_project_task(*args, **valid_kwargs);
 
     def inactivate_project(self, *args, **kwargs) -> TaskStatus:
         self._check_implem()

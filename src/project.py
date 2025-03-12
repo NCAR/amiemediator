@@ -1,5 +1,17 @@
 from amieparms import (AMIEParmDescAware, process_parms)
 
+class LookupProjectTask(AMIEParmDescAware,dict):
+    @process_parms(
+        allowed=[
+            'RecordID',
+            ],
+        required=[
+            'RecordID',
+            ])
+    def __init__(self, *args, **kwargs):
+        """Validate, filter, and transform arguments to ``lookup_project_task()``"""
+        dict.__init__(self, **kwargs)
+
 class LookupLocalFos(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[

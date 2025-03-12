@@ -129,6 +129,20 @@ def define_project(spa, apacket):
     apacket['end_date'] = end_date
     apacket['remote_site_login'] = remote_site_login
 
+def lookup_project(spa, apacket):
+    spa.logdumper.debug("lookup_project: apacket=", apacket)
+    ts = spa.lookup_project(apacket)
+    if ts:
+        apacket['PiPersonID'] = ts.get_product_value('PiPersonID')
+        apacket['PiRemoteSiteLogin'] = ts.get_product_value('PiRemoteSiteLogin')
+        apacket['ProjectID'] = ts.get_product_value('ProjectID')
+        apacket['ServiceUnitsAllocated'] = \
+                                   ts.get_product_value('ServiceUnitsAllocated')
+        apacket['StartDate'] = ts.get_product_value('StartDate')
+        apacket['EndDate'] = ts.get_product_value('EndDate')
+    return ts
+        
+
 def define_account(spa, apacket, prefix):
     remote_site_login = apacket.get('remote_site_login',None)
     if not remote_site_login:

@@ -26,6 +26,14 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         # all or them will be defined.
         #
 
+        # We want to check up front for RecordID
+        recordID = apacket.get('RecordID',None)
+        if recordID is not None:
+            ts = sub.lookup_project(spa, apacket)
+            if ts:
+                npc = build_reply(apacket)
+                return npc
+        
         org_code = apacket.get('org_code',None)
         if org_code is None:
             ts = sub.define_org_code(spa, apacket, 'Pi')
@@ -125,6 +133,10 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             if ts:
                 return ts
         
+        npc = build_reply(apacket)
+        return npc
+
+    def build_reply(self,apacket):
         npc = apacket.create_reply_packet()
         npc.GrantNumber = apacket['GrantNumber']
         npc.PfosNumber = apacket['PfosNumber']
@@ -132,11 +144,11 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         npc.ProjectTitle = apacket['ProjectTitle']
         npc.ResourceList = apacket['ResourceList']
 
-        npc.PiPersonID = person_id
-        npc.PiRemoteSiteLogin = remote_site_login
-        npc.ProjectID = project_id
-        npc.ServiceUnitsAllocated = float(service_units_allocated)
-        npc.StartDate = DateTime(start_date).datetime()
-        npc.EndDate = DateTime(end_date).datetime()
+        npc.PiPersonID = apacket['PiPersonID']
+        npc.PiRemoteSiteLogin = apacket['PiRemoteSiteLogin']
+        npc.ProjectID = apacket['ProjectID']
+        npc.ServiceUnitsAllocated = float(apacket['ServiceUnitsAllocated'])
+        npc.StartDate = DateTime(apacket['StartDate']).datetime()
+        npc.EndDate = DateTime(apacket['EndDate']).datetime()
 
         return npc

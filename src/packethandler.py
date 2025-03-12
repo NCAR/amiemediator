@@ -339,6 +339,19 @@ class ServiceProviderAdapter(object):
         self._check_task_status_for_errors(ts)
         return ts
 
+    def lookup_project(self, apacket) -> TaskStatus:
+        """Get the TaskStatus for a RPC RecordID
+        
+        :param apacket: An "ActionablePacket"
+        :type apacket: dict 
+        :return: An TaskStatus object or None
+        """
+        
+        rpc_task = None
+        with SPSession() as sp:
+            rpc_task = sp.lookup_project(apacket)
+        return rpc_task
+
     def inactivate_project(self, apacket) -> TaskStatus:
         """Get the TaskStatus object from ServiceProvider.inactivate_project()
 
