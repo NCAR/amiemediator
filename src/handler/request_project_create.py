@@ -31,7 +31,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
-                npc = build_reply(apacket)
+                npc = self.build_reply(apacket)
                 return npc
         
         org_code = apacket.get('org_code',None)
@@ -133,7 +133,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             if ts:
                 return ts
         
-        npc = build_reply(apacket)
+        npc = self.build_reply(apacket)
         return npc
 
     def build_reply(self,apacket):
