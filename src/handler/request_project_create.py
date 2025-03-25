@@ -123,17 +123,13 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.define_project(spa, apacket)
             if ts:
                 return ts
-        service_units_allocated = apacket.get('service_units_allocated',None)
-        start_date = apacket['start_date']
-        end_date = apacket['end_date']
-        remote_site_login = apacket['remote_site_login']
 
         user_notified = apacket.get('user_notified',None)
         if not truthy(user_notified):
             ts = sub.notify_user(spa, apacket)
             if ts:
                 return ts
-        
+
         npc = self.build_reply(apacket)
         return npc
 
@@ -145,11 +141,11 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         npc.ProjectTitle = apacket['ProjectTitle']
         npc.ResourceList = apacket['ResourceList']
 
-        npc.PiPersonID = apacket['PiPersonID']
-        npc.PiRemoteSiteLogin = apacket['PiRemoteSiteLogin']
-        npc.ProjectID = apacket['ProjectID']
+        npc.PiPersonID = apacket['person_id']
+        npc.PiRemoteSiteLogin = apacket['person_id']
+        npc.ProjectID = apacket['project_id']
         npc.ServiceUnitsAllocated = float(apacket['service_units_allocated'])
-        npc.StartDate = DateTime(apacket['StartDate']).datetime()
-        npc.EndDate = DateTime(apacket['EndDate']).datetime()
+        npc.StartDate = DateTime(apacket['start_date']).datetime()
+        npc.EndDate = DateTime(apacket['end_date']).datetime()
 
         return npc
