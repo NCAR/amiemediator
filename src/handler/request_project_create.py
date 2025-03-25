@@ -148,7 +148,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         npc.PiPersonID = apacket['PiPersonID']
         npc.PiRemoteSiteLogin = apacket['PiRemoteSiteLogin']
         npc.ProjectID = apacket['ProjectID']
-        npc.ServiceUnitsAllocated = float(apacket['ServiceUnitsAllocated'])
+        npc.ServiceUnitsAllocated = float(apacket['service_units_allocated'])
         npc.StartDate = DateTime(apacket['StartDate']).datetime()
         npc.EndDate = DateTime(apacket['EndDate']).datetime()
 
