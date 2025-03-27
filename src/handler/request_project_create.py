@@ -95,7 +95,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             remote_site_login = apacket['remote_site_login']
 
         else:
-            project_id = apacket.get('ProjectID',apacket['project_id'])
+            project_id = apacket.get('ProjectID',apacket.get('project_id',None))
             service_units_allocated = apacket.get('service_units_allocated',None)
             if service_units_allocated is None:
                 ts = sub.define_allocation(spa, apacket)
