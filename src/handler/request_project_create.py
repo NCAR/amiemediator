@@ -40,6 +40,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             if ts:
                 return ts
         org_code = apacket['org_code']
+
         
         person_id = apacket.get('person_id',None)
         if person_id is None:
@@ -59,70 +60,52 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                 return ts
         person_active = apacket['person_active']
 
-        site_grant_key = apacket.get('site_grant_key',None)
-        if site_grant_key is None:
-            ts = sub.define_site_grant_key(spa, apacket)
-            if ts:
-                return ts
-        site_grant_key = apacket['site_grant_key']
-
         allocation_type = apacket['AllocationType']
-#        if allocation_type == "new" or allocation_type == "renewal":
-#            local_fos = apacket.get('local_fos',None)
-#            if local_fos is None:
-#                ts = sub.define_local_fos(spa, apacket)
-#                if ts:
-#                    return ts
-#            local_fos = apacket['local_fos']
-#
-#        if allocation_type == "new":
-#            project_name_base = apacket.get('project_name_base',None)
-#            if project_name_base is None:
-#                ts = sub.define_project_name_base(spa, apacket)
-#                if ts:
-#                    return ts
-#            project_name_base = apacket['project_name_base']
-#                
-#            project_id = apacket.get('project_id',None)
-#            if project_id is None:
-#                ts = sub.define_project(spa, apacket)
-#                if ts:
-#                    return ts
-#            project_id = apacket['project_id']
-#            service_units_allocated = apacket.get('service_units_allocated',None)
-#            start_date = apacket['start_date']
-#            end_date = apacket['end_date']
-#            remote_site_login = apacket['remote_site_login']
-#
-#        else:
-#            project_id = apacket.get('ProjectID',apacket['project_id'])
-#            service_units_allocated = apacket.get('service_units_allocated',None)
-#            if service_units_allocated is None:
-#                ts = sub.define_allocation(spa, apacket)
-#                if ts:
-#                    return ts
-#            service_units_allocated = apacket['service_units_allocated']
-#            start_date = apacket['start_date']
-#            end_date = apacket['end_date']
+        if allocation_type == "new" or allocation_type == "renewal":
+            local_fos = apacket.get('local_fos',None)
+            if local_fos is None:
+                ts = sub.define_local_fos(spa, apacket)
+                if ts:
+                    return ts
+            local_fos = apacket['local_fos']
 
-        local_fos = apacket.get('local_fos',None)
-        if local_fos is None:
-            ts = sub.define_local_fos(spa, apacket)
-            if ts:
-                return ts
-        local_fos = apacket['local_fos']
-        project_name_base = apacket.get('project_name_base',None)
-        if project_name_base is None:
-            ts = sub.define_project_name_base(spa, apacket)
-            if ts:
-                return ts
-        project_name_base = apacket['project_name_base']
+        if allocation_type == "new":
+
+            site_grant_key = apacket.get('site_grant_key',None)
+            if site_grant_key is None:
+                ts = sub.define_site_grant_key(spa, apacket)
+                if ts:
+                    return ts
+                site_grant_key = apacket['site_grant_key']
+                
+            project_name_base = apacket.get('project_name_base',None)
+            if project_name_base is None:
+                ts = sub.define_project_name_base(spa, apacket)
+                if ts:
+                    return ts
+            project_name_base = apacket['project_name_base']
+                
+            project_id = apacket.get('project_id',None)
+            if project_id is None:
+                ts = sub.define_project(spa, apacket)
+                if ts:
+                    return ts
+            project_id = apacket['project_id']
+            service_units_allocated = apacket.get('service_units_allocated',None)
+            remote_site_login = apacket['remote_site_login']
+
+        else:
+            project_id = apacket.get('ProjectID',apacket['project_id'])
+            service_units_allocated = apacket.get('service_units_allocated',None)
+            if service_units_allocated is None:
+                ts = sub.define_allocation(spa, apacket)
+                if ts:
+                    return ts
+            service_units_allocated = apacket['service_units_allocated']
             
-        project_id = apacket.get('project_id',None)
-        if project_id is None:
-            ts = sub.define_project(spa, apacket)
-            if ts:
-                return ts
+        start_date = apacket['start_date']
+        end_date = apacket['end_date']
+
 
         user_notified = apacket.get('user_notified',None)
         if not truthy(user_notified):

@@ -487,7 +487,10 @@ class ServiceProviderAdapter(object):
         ts = self._get_task_by_method_name("update_allocation", apacket)
         if ts['task_state'] == 'nascent':
             request_data = self._init_task_data(ts, apacket)
-            request_data['ProjectID'] = apacket['project_id']
+            project_id = apacket.get('ProjectID',None)
+            if project_id is None:
+                project_id = apacket.get('project_id',None)
+                request_data['ProjectID'] = project_id
 
             with SPSession() as sp:
                 ts = sp.update_allocation(**request_data)

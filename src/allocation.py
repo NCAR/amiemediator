@@ -17,6 +17,7 @@ class UpdateAllocation(AMIEParmDescAware,dict):
             'AllocationType',
             'EndDate',
             'ProjectID',
+            'Resource',
             'ServiceUnitsAllocated',
             'StartDate',
             ],
@@ -34,6 +35,7 @@ class UpdateAllocation(AMIEParmDescAware,dict):
             'AllocationType',
             'EndDate',
             'ProjectID',
+            'Resource',
             'ServiceUnitsAllocated',
             'StartDate',
             ])

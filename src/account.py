@@ -12,6 +12,7 @@ class CreateAccount(AMIEParmDescAware,dict):
             'timestamp',
 
             'site_grant_key',
+            'GrantNumber',
             'ProjectID',
             'PersonID',
             'Resource',

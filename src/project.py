@@ -35,6 +35,7 @@ class ChooseOrAddLocalFos(AMIEParmDescAware,dict):
             'timestamp',
 
             'Abstract',
+            'GrantNumber',
             'PfosNumber',
             'ProjectTitle',
             'PiDepartment',
@@ -201,6 +202,7 @@ class InactivateProject(AMIEParmDescAware,dict):
             'timestamp',
             
             'site_grant_key',
+            'GrantNumber',
             'AllocatedResource',
             'Comment',
             'EndDate',
