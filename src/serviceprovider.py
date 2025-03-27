@@ -57,14 +57,12 @@ class ServiceProviderIF(ABC):
         pass
 
     @abstractmethod
-    def get_local_task_name(self, method_name, *args, **kwargs) -> str:
+    def get_local_task_name(self, method_name, kwargs) -> str:
         """Return the local task name for the given request
 
         :param method_name: The name of a ServiceProvider method that
             requires a task
         :type method_name: str
-        :param args: See ServiceProvider method
-        :type args: list
         :param kwargs: See ServiceProvider method
         :type kwargs: dict
         
@@ -498,9 +496,9 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
             msg = "No real ServiceProvider implementation has been configured!"
             raise ServiceProviderError(msg)
 
-    def get_local_task_name(self, method_name, *args, **kwargs) -> str:
+    def get_local_task_name(self, method_name, kwargs) -> str:
         self._check_implem()
-        return self.implem.get_local_task_name(method_name, *args, **kwargs)
+        return self.implem.get_local_task_name(method_name, kwargs)
 
     def get_tasks(self, active=True, wait=None, since=None) -> list:
         self._check_implem()
