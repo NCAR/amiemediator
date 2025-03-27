@@ -11,9 +11,6 @@ class UpdateAllocation(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
-            'resource_name',
-            'requested_resource',
-            'requested_amount',
             'AllocationType',
             'EndDate',
             'ProjectID',
@@ -29,9 +26,6 @@ class UpdateAllocation(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
-            'resource_name',
-            'requested_resource',
-            'requested_amount',
             'AllocationType',
             'EndDate',
             'ProjectID',
