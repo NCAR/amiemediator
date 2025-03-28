@@ -105,7 +105,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             
         person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
         apacket['PersonID'] = person_id
-        project_id = get_first_nonEmpty('project_id','ProjectID')
+        project_id = get_first_nonEmpty(apacket,'project_id','ProjectID')
         apacket['ProjectID'] = project_id
         sua = get_first_nonEmpty(apacket,'service_units_allocated',
                                  'ServiceUnitsAllocated')
