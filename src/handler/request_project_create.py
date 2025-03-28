@@ -107,6 +107,13 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         end_date = apacket['end_date']
 
 
+        person_id = apacket.get('PersonID', apacket.get('person_id', None))
+        apacket['PersonID'] = person_id
+        project_id = apacket.get('ProjectID',apacket.get('project_id',None))
+        apacket['ProjectID'] = project_id
+        sua = apacket.get('ServiceUnitsAllocated', \
+                          apacket.get('service_units_allocated',None))
+        apacket['ServiceUnitsAllocated'] = sua
         user_notified = apacket.get('user_notified',None)
         if not truthy(user_notified):
             ts = sub.notify_user(spa, apacket)
@@ -124,11 +131,13 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         npc.ProjectTitle = apacket['ProjectTitle']
         npc.ResourceList = apacket['ResourceList']
 
-        npc.PiPersonID = apacket['person_id']
-        npc.PiRemoteSiteLogin = apacket['person_id']
-        npc.ProjectID = apacket['project_id']
-        npc.ServiceUnitsAllocated = float(apacket['service_units_allocated'])
-        npc.StartDate = DateTime(apacket['start_date']).datetime()
-        npc.EndDate = DateTime(apacket['end_date']).datetime()
+        npc.PiPersonID = apacket['PersonID']
+        npc.PiRemoteSiteLogin = apacket['PersonID']
+        npc.ProjectID = apacket['ProjectID']
+        npc.ServiceUnitsAllocated = float(apacket['ServiceUnitsAllocated'])
+        start_date = apacket.get('StartDate',apacket.get('start_date',None))
+        npc.StartDate = DateTime(start_date).datetime()
+        end_date = apacket.get('EndDate',apacket.get('end_date',None))
+        npc.EndDate = DateTime(end_date).datetime()
 
         return npc
