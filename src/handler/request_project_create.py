@@ -2,7 +2,7 @@ import logging
 from packethandler import PacketHandler
 from misctypes import DateTime
 from taskstatus import TaskStatus
-from miscfuncs import truthy
+from miscfuncs import (truthy, get_first_nonEmpty)
 import handler.subtasks as sub
 
 class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
@@ -95,7 +95,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             remote_site_login = apacket['remote_site_login']
 
         else:
-            project_id = apacket.get('ProjectID',apacket.get('project_id',None))
+            project_id = get_first_nonempty(apacket,'project_id','ProjectID')
             service_units_allocated = apacket.get('service_units_allocated',None)
             if service_units_allocated is None:
                 ts = sub.define_allocation(spa, apacket)
@@ -103,16 +103,12 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                     return ts
             service_units_allocated = apacket['service_units_allocated']
             
-        start_date = apacket['start_date']
-        end_date = apacket['end_date']
-
-
-        person_id = apacket.get('PersonID', apacket.get('person_id', None))
+        person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
         apacket['PersonID'] = person_id
-        project_id = apacket.get('ProjectID',apacket.get('project_id',None))
+        project_id = get_first_nonEmpty('project_id','ProjectID')
         apacket['ProjectID'] = project_id
-        sua = apacket.get('ServiceUnitsAllocated', \
-                          apacket.get('service_units_allocated',None))
+        sua = get_first_nonEmpty(apacket,'service_units_allocated',
+                                 'ServiceUnitsAllocated')
         apacket['ServiceUnitsAllocated'] = sua
         user_notified = apacket.get('user_notified',None)
         if not truthy(user_notified):
@@ -135,9 +131,9 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         npc.PiRemoteSiteLogin = apacket['PersonID']
         npc.ProjectID = apacket['ProjectID']
         npc.ServiceUnitsAllocated = float(apacket['ServiceUnitsAllocated'])
-        start_date = apacket.get('StartDate',apacket.get('start_date',None))
+        start_date = get_first_nonEmpty(apacket,'start_date','StartDate')
         npc.StartDate = DateTime(start_date).datetime()
-        end_date = apacket.get('EndDate',apacket.get('end_date',None))
+        end_date = get_first_nonEmpty(apacket,'end_date','EndDate')
         npc.EndDate = DateTime(end_date).datetime()
 
         return npc

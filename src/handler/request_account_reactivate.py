@@ -1,7 +1,7 @@
 from packethandler import PacketHandler
 from misctypes import DateTime
 from taskstatus import TaskStatus
-from miscfuncs import truthy
+from miscfuncs import (truthy, get_first_nonEmpty)
 import handler.subtasks as sub
 
 class RequestAccountReactivate(PacketHandler, packet_type="request_account_reactivate"):
@@ -29,6 +29,10 @@ class RequestAccountReactivate(PacketHandler, packet_type="request_account_react
                 return ts
         person_active = apacket['person_active']
 
+        person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
+        apacket['PersonID'] = person_id
+        project_id = get_first_nonEmpty('project_id','ProjectID')
+        apacket['ProjectID'] = project_id
         user_notified = apacket.get('user_notified', None)
         if user_notified is None:
             ts = sub.notify_user(spa, apacket)

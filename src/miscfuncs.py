@@ -18,6 +18,13 @@ class Prettifiable(ABC):
         """Convert object to verbose formatted string"""
         self.pformat()
 
+    def get_first_nonEmpty(kwargs, *args):
+        for arg in args:
+            value = kwargs.get(arg,None)
+            if value:
+                return value
+        return None
+    
 def truthy(val):
     """Return True if the given value looks to be true, False otherwise"""
     if val is None:
