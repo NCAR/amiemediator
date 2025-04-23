@@ -28,7 +28,7 @@ class ServiceProviderAdapter(object):
         task_name = sp.get_local_task_name(method_name, apacket)
         if task_name is None:
             # task = dict(packet_dict)
-            task = dict()
+            task = dict(apacket)
             task['client'] = 'AMIE'
             task['task_name'] = method_name
             task['task_state'] = 'nascent'
