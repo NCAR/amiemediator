@@ -139,11 +139,15 @@ class AMIEMediator(object):
         :return: list of ActionablePacket
         """
 
+        self.logger.debug("!!!run: _loadTasks")
         self._load_tasks()
 
+        self.logger.debug("!!!run: _load_amie_packets")
         apackets = self._load_amie_packets()
+        self.logger.debug("!!!run: _flush_amie_packets")
         self._flush_amie_packets()
 
+        self.logger.debug("!!!run: _service_actional_packets")
         apackets = self._service_actionable_packets(apackets)
         self._flush_amie_packets()
 
@@ -203,6 +207,7 @@ class AMIEMediator(object):
                         wait_secs = ramped_wait_secs
             
             if self.transaction_manager.have_actionable_packets():
+                self.logger.debug("!!!run_loop _load_tasks")
                 self._load_tasks(wait=wait_secs)
             elif wait_secs:
                 self.logger.debug("Sleeping " + str(wait_secs) + " sec")
@@ -210,11 +215,15 @@ class AMIEMediator(object):
                 
             previous_wait_secs = wait_secs if wait_secs else 0
 
+            self.logger.debug("!!!run_loop _load_amie_packets")
             apackets = self._load_amie_packets()
+            self.logger.debug("!!!run_loop _flush_amie_packets")
             self._flush_amie_packets()
 
             if apackets:
+                self.logger.debug("!!!run_loop _service_actionable_packets")
                 apackets = self._service_actionable_packets(apackets)
+                self.logger.debug("!!!run_loop _flush_amie_packets")
                 self._flush_amie_packets()
                 
 

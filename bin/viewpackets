@@ -70,7 +70,7 @@ LOCALSITE_OPTIONS_TEXT = f'''
 OPTIONS_TEXT = f'''
   ``-l|--loop``
       Normally, ``{PROG}`` lists the current status of packets or the
-      contents of a specfic packet and then exists. The ``--loop`` flag will
+      contents of a specfic packet and then exits. The ``--loop`` flag will
       cause ``{PROG}`` to continue reading snapshots and updating the
       display until a keyboard interrupt is encountered or, if a single packet
       is being displayed, the snapshot is removed. In addition, if standard
