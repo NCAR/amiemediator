@@ -61,7 +61,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         person_active = apacket['person_active']
 
         allocation_type = apacket['AllocationType']
-        if allocation_type == "transfer":
+        if allocation_type == "transfer" or allocation_type == "renewal" \
+           or allocation_type == "advance":
             allocation_type = "new"
         if allocation_type == "new" or allocation_type == "renewal":
 
