@@ -61,7 +61,10 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         person_active = apacket['person_active']
 
         allocation_type = apacket['AllocationType']
+        if allocation_type == "transfer":
+            allocation_type = "new"
         if allocation_type == "new" or allocation_type == "renewal":
+
             local_fos = apacket.get('local_fos',None)
             if local_fos is None:
                 ts = sub.define_local_fos(spa, apacket)
