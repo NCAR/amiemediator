@@ -37,9 +37,11 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                 sub.define_person(spa, apacket,"Pi")
                 logdumper.debug("request_project_create normalizing packet: ",
                                 apacket);
-                self.normalize_packet(apacket)
+                ts =  self.normalize_packet(apacket)
                 logdumper.debug("request_project_create normalized packet: ",
-                                apacket);
+                                apacket)
+                if ts:
+                    return ts;
                 npc = self.build_reply(apacket)
                 return npc
         
