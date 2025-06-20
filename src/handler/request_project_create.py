@@ -124,6 +124,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         return npc
 
     def normalize_packet(self,apacket):
+        spa = self.sp_adapter
         person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
         apacket['PersonID'] = person_id
         project_id = get_first_nonEmpty(apacket,'project_id','ProjectID')
