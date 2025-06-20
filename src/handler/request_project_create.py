@@ -1,4 +1,5 @@
 import logging
+from logdumper import LogDumper
 from packethandler import PacketHandler
 from misctypes import DateTime
 from taskstatus import TaskStatus
