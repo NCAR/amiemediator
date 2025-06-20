@@ -15,6 +15,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         :return: A TaskStatus if there is an uncompleted task, or an AMIEPacket
             to be sent back
         """
+        logger = logging.getLogger("handler")
+        logdumper = LogDumper(logger)
 
         spa = self.sp_adapter
 
@@ -106,7 +108,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                 if ts:
                     return ts
             service_units_allocated = apacket['service_units_allocated']
-            
+
+        logdumper.debug("request_project_create penultimate state: ",apacket);
         person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
         apacket['PersonID'] = person_id
         project_id = get_first_nonEmpty(apacket,'project_id','ProjectID')
@@ -119,6 +122,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.notify_user(spa, apacket)
             if ts:
                 return ts
+        logdumper.debug("request_project_create final state: ",apacket);
 
         npc = self.build_reply(apacket)
         return npc
