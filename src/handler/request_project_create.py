@@ -20,6 +20,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         logdumper = LogDumper(logger)
 
         spa = self.sp_adapter
+        
+        logdumper.debug("request_project_create initial state: ",apacket);
 
         #
         # The lower-case parameters we collect initially (e.g. "person_id",
