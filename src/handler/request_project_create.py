@@ -35,6 +35,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
                 sub.define_person(spa, apacket,"Pi")
+                self.normalize_packet(apacket)
                 npc = self.build_reply(apacket)
                 return npc
         
@@ -111,7 +112,13 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                     return ts
             service_units_allocated = apacket['service_units_allocated']
 
-        logdumper.debug("request_project_create penultimate state: ",apacket);
+        self.normalize_packet(apacket)
+
+        npc = self.build_reply(apacket)
+        return npc
+
+    def normalize_packet(self,apacket):
+        logdumper.debug("request_project_create normalizing packet: ",apacket);
         person_id = get_first_nonEmpty(apacket,'person_id','PersonID')
         apacket['PersonID'] = person_id
         project_id = get_first_nonEmpty(apacket,'project_id','ProjectID')
@@ -124,10 +131,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.notify_user(spa, apacket)
             if ts:
                 return ts
-        logdumper.debug("request_project_create final state: ",apacket);
-
-        npc = self.build_reply(apacket)
-        return npc
+        logdumper.debug("request_project_create normalized packet: ",apacket);
 
     def build_reply(self,apacket):
         npc = apacket.create_reply_packet()
