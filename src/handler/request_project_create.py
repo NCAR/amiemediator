@@ -34,8 +34,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
-                amie_person = spa.lookup_person(apacket,'Pi')
-                logdumper.debug("found RecordID; amie_person: ",amie_person);
+                sub.define_person(spa, apacket,"Pi")
                 npc = self.build_reply(apacket)
                 return npc
         
