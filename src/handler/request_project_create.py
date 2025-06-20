@@ -21,8 +21,6 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
 
         spa = self.sp_adapter
         
-        logdumper.debug("request_project_create initial state: ",apacket);
-
         #
         # The lower-case parameters we collect initially (e.g. "person_id",
         # "org_code", etc) represent the dynamic state of this request. The
@@ -36,6 +34,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
+                amie_person = spa.lookup_person(apacket,'Pi')
+                logdumper.debug("found RecordID; amie_person: ",amie_person);
                 npc = self.build_reply(apacket)
                 return npc
         
