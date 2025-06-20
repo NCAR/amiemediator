@@ -34,17 +34,10 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
-                logdumper.debug("Found RecordID task: ",ts)
-                sub.define_person(spa, apacket,"Pi")
-                logdumper.debug("request_project_create normalizing packet: ",
-                                apacket);
-                ts =  self.normalize_packet(apacket)
-                logdumper.debug("request_project_create normalized packet: ",
-                                apacket)
-                if ts:
-                    return ts;
-                npc = self.build_reply(apacket)
-                return npc
+                project_id = apacket.get('ProjectID',None)
+                if project_id:
+                    npc = self.build_reply(apacket)
+                    return npc
         
         org_code = apacket.get('org_code',None)
         if org_code is None:
