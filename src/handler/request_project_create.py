@@ -34,6 +34,7 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
+                logdumper.debug("Found RecordID task: ",ts)
                 sub.define_person(spa, apacket,"Pi")
                 logdumper.debug("request_project_create normalizing packet: ",
                                 apacket);
