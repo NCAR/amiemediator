@@ -34,6 +34,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
         if recordID is not None:
             ts = sub.lookup_project_task(spa, apacket)
             if ts:
+                person_id = apacket.get("PiPersonID",None);
+                apacket['PersonID'] = person_id;
                 project_id = apacket.get('ProjectID',None)
                 if project_id:
                     npc = self.build_reply(apacket)
