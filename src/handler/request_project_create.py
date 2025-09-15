@@ -10,7 +10,6 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
 
     def work(self, apacket):
         """Handle a "request_project_create" packet
-
         :param apacket: dict with extended packet data
         :type apacket: ActionablePacket
         :return: A TaskStatus if there is an uncompleted task, or an AMIEPacket
@@ -114,9 +113,11 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                     return ts
             service_units_allocated = apacket['service_units_allocated']
 
-        logdumper.debug("request_project_create normalizing packet: ",apacket);
-        self.normalize_packet(apacket)
-        logdumper.debug("request_project_create normalized packet: ",apacket);
+        spa.logdumper.debug("request_project_create normalizing: ",apacket)
+        ts = self.normalize_packet(apacket)
+        spa.logdumper.debug("request_project_create normalized: ",apacket)
+        if ts:
+            return ts
 
         npc = self.build_reply(apacket)
         return npc
@@ -135,6 +136,8 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
             ts = sub.notify_user(spa, apacket)
             if ts:
                 return ts
+        else:
+            return None
 
     def build_reply(self,apacket):
         npc = apacket.create_reply_packet()
