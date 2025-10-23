@@ -12,8 +12,8 @@ from taskstatus import TaskStatus
 from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
                     MergePerson, UpdatePersonDNs)
-from grant import (LookupGrant, ChooseOrAddGrantNumber)
-from project import (LookupProjectTask, LookupLocalFos, ChooseOrAddLocalFos,
+from project import (LookupProjectTask, LookupProjectByGrantNumber,
+                     LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
                      CreateProject, InactivateProject, ReactivateProject)
 from account import (CreateAccount, InactivateAccount, ReactivateAccount,
