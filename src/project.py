@@ -12,6 +12,21 @@ class LookupProjectTask(AMIEParmDescAware,dict):
         """Validate, filter, and transform arguments to ``lookup_project_task()``"""
         dict.__init__(self, **kwargs)
 
+
+class LookupProjectByGrantNumber(AMIEParmDescAware,dict):
+        
+    @process_parms(
+        allowed=[
+            'GrantNumber',
+        ],
+        required=[
+            'GrantNumber',
+        ])
+    def __init__(self, *args, **kwargs) -> dict:
+        """Validate, filter, and transform arguments to ``lookup_project_by_grant_number()``"""
+        return dict.__init__(self,**kwargs)
+
+
 class LookupLocalFos(AMIEParmDescAware,dict):
     @process_parms(
         allowed=[
@@ -71,15 +86,15 @@ class LookupProjectNameBase(AMIEParmDescAware,dict):
             'PiState',
             'ProjectID',
             'ProjectTitle',
+            'contract_number',
             'site_org',
-            'site_grant_key',
             ],
         required=[
             'GrantNumber',
             'PfosNumber',
             'PiOrganization',
             ['PiOrgCode', 'site_org'],
-            'site_grant_key',
+            'contract_number',
             ])
     def __init__(self, *args, **kwargs):
         """Validate, filter, and transform arguments to ``lookup_project_name_base()``"""
@@ -109,7 +124,7 @@ class ChooseOrAddProjectNameBase(AMIEParmDescAware,dict):
             'PiState',
             'ProjectID',
             'ProjectTitle',
-            'site_grant_key',
+            'contract_number',
             'site_org',
             ],
         required=[
@@ -124,7 +139,7 @@ class ChooseOrAddProjectNameBase(AMIEParmDescAware,dict):
             'PfosNumber',
             'PiOrganization',
             'PiOrgCode',
-            'site_grant_key',
+            'contract_number',
             ])
     def __init__(self, *args, **kwargs):
         """Validate, filter, and transform arguments to ``choose_or_add_project_name_base()``"""
@@ -142,9 +157,10 @@ class CreateProject(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
+            'AllocationType',
+            'contract_number',
             'local_fos',
             'project_name_base',
-            'site_grant_key',
             'site_org',
             'Abstract',
             'AllocatedResource',
@@ -160,6 +176,7 @@ class CreateProject(AMIEParmDescAware,dict):
             'ProjectTitle',
             'RecordID',
             'RemoteSiteLogin',
+            'RequestType',
             'Resource',
             'RoleList',
             'ServiceUnitsAllocated',
@@ -174,9 +191,10 @@ class CreateProject(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
             
+            'AllocationType',
             'local_fos',
             'project_name_base',
-            'site_grant_key',
+            'contract_number',
             'EndDate',
             'GrantNumber',
             'PfosNumber',
@@ -201,7 +219,7 @@ class InactivateProject(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
             
-            'site_grant_key',
+            'contract_number',
             'GrantNumber',
             'AllocatedResource',
             'Comment',

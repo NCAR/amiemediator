@@ -72,17 +72,17 @@ def merge_person(spa, apacket):
     else:
         return merge_ts
 
-def define_site_grant_key(spa, apacket):
-    site_grant_key = spa.lookup_grant(apacket)
-    if site_grant_key is None:
-        spa.logdumper.debug("define_site_grant_key: apacket=", apacket)
-        gts = spa.choose_or_add_grant(apacket)
-        if gts['task_state'] == "successful":
-            site_grant_key = gts.get_product_value('site_grant_key')
+def define_contract_number(spa, apacket):
+    contract_number = spa.lookup_contract_number(apacket)
+    if contract_number is None:
+        spa.logdumper.debug("define_contract_number: apacket=", apacket)
+        cts = spa.choose_or_contract_number(apacket)
+        if cts['task_state'] == "successful":
+            contract_number = cts.get_product_value('contract_number')
         else:
-            return gts
-    spa.logger.debug("define_site_grant_key site_grant_key="+site_grant_key)
-    apacket['site_grant_key'] = site_grant_key
+            return cts
+    spa.logger.debug("define_contract_number contract_number="+contract_number)
+    apacket['contract_number'] = contract_number
     return None
 
 def define_local_fos(spa, apacket):
@@ -97,6 +97,13 @@ def define_local_fos(spa, apacket):
     spa.logger.debug("define_local_fos local_fos="+local_fos)
     apacket['local_fos'] = local_fos
     return None
+
+def lookup_project_by_grant_number(spa, apacket):
+    spa.logdumper.debug("lookup_project_by_grant_number: apacket=", apacket)
+    project_id = spa.lookup_project_by_grant_number(apacket)
+    if project_id:
+        apacket['project_id'] = project_id
+    return project_id
 
 def define_project_name_base(spa, apacket):
     project_name_base = spa.lookup_project_name_base(apacket)

@@ -11,7 +11,7 @@ class CreateAccount(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
-            'site_grant_key',
+            'contract_number',
             'GrantNumber',
             'ProjectID',
             'PersonID',
@@ -25,7 +25,7 @@ class CreateAccount(AMIEParmDescAware,dict):
             'task_name',
             'timestamp',
 
-            ['ProjectID', 'site_grant_key'],
+            ['ProjectID', 'contract_number'],
             'PersonID',
             'Resource',
             ])

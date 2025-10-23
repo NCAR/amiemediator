@@ -1,6 +1,6 @@
 from amieparms import (AMIEParmDescAware, process_parms)
 
-class LookupGrant(AMIEParmDescAware,dict):
+class LookupContractNumber(AMIEParmDescAware,dict):
         
     @process_parms(
         allowed=[
@@ -10,10 +10,10 @@ class LookupGrant(AMIEParmDescAware,dict):
             'GrantNumber',
         ])
     def __init__(self, *args, **kwargs) -> dict:
-        """Validate, filter, and transform arguments to ``lookup_grant()``"""
+        """Validate, filter, and transform arguments to ``lookup_contract_number()``"""
         return dict.__init__(self,**kwargs)
 
-class ChooseOrAddGrant(AMIEParmDescAware,dict):
+class ChooseOrAddContractNumber(AMIEParmDescAware,dict):
     """
     A class used when specifying a GrantNumber known to AMIE
     """

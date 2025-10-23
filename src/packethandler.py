@@ -214,35 +214,37 @@ class ServiceProviderAdapter(object):
             apacket['person_active'] = active
         return ts
 
-    def lookup_grant(self, apacket) -> str:
-        """Get the site_grant_key for the packet
+    def lookup_contract_number(self, apacket) -> str:
+        """Get the contract_number for the packet
         
         :param apacket: An "ActionablePacket"
         :type apacket: dict 
-        :return: site_grant_key string
+        :return: contract_number string
         """
 
-        site_grant_key = None
+        contract_number = None
         with SPSession() as sp:
-            site_grant_key = sp.lookup_grant(apacket)
-        return site_grant_key
+            contract_number = sp.lookup_contract_number(apacket)
+        return contract_number
         
-    def choose_or_add_grant(self, apacket) -> TaskStatus:
-        """Get the TaskStatus object from ServiceProvider.choose_or_add_grant()
+    def choose_or_add_contract_number(self, apacket) -> TaskStatus:
+        """Get the TaskStatus object from
+         ServiceProvider.choose_or_add_contract_number()
 
         :param apacket: An "ActionablePacket"
         :type apacket: dict 
         :return: A TaskStatus object from the ServiceProvider task. Final
-        Products on success must include site_grant_key
+        Products on success must include contract_number
         """
 
-        ts = self._get_task_by_method_name("choose_or_add_grant", apacket)
+        ts = self._get_task_by_method_name("choose_or_add_contract_number",
+                                           apacket)
         if ts['task_state'] == 'nascent':
             request_data = self._init_task_data(ts, apacket)
             request_data['PiPersonID'] = apacket['pi_person_id']
 
             with SPSession() as sp:
-                ts = sp.choose_or_add_grant(**request_data)
+                ts = sp.choose_or_add_contract_number(**request_data)
             apacket.add_or_update_task(ts)
 
         self._check_task_status_for_errors(ts)

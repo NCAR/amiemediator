@@ -39,14 +39,13 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                 if project_id:
                     npc = self.build_reply(apacket)
                     return npc
-        
+
         org_code = apacket.get('org_code',None)
         if org_code is None:
             ts = sub.define_org_code(spa, apacket, 'Pi')
             if ts:
                 return ts
         org_code = apacket['org_code']
-
         
         person_id = apacket.get('person_id',None)
         if person_id is None:
@@ -66,43 +65,43 @@ class RequestProjectCreate(PacketHandler, packet_type="request_project_create"):
                 return ts
         person_active = apacket['person_active']
 
-        allocation_type = apacket['AllocationType']
-        if allocation_type == "transfer" or allocation_type == "renewal" \
-           or allocation_type == "advance":
-            allocation_type = "new"
-        if allocation_type == "new" or allocation_type == "renewal":
+        # Next we want to check if there is already a project for the given
+        # GrantNumber - this determines the serviceprovider tasks
+        grantNumber = apacket.get('GrantNumber',None)
+        if grantNumber is not None:
+            project_id = sub.lookup_project_by_grant_number(spa, apacket)
+
+        if not project_id:
 
             local_fos = apacket.get('local_fos',None)
             if local_fos is None:
                 ts = sub.define_local_fos(spa, apacket)
                 if ts:
                     return ts
-            local_fos = apacket['local_fos']
-
-        if allocation_type == "new":
-
-            site_grant_key = apacket.get('site_grant_key',None)
-            if site_grant_key is None:
-                ts = sub.define_site_grant_key(spa, apacket)
+                local_fos = apacket['local_fos']
+                    
+            contract_number = apacket.get('contract_number',None)
+            if contract_number is None:
+                ts = sub.define_contract_number(spa, apacket)
                 if ts:
                     return ts
-                site_grant_key = apacket['site_grant_key']
+                contract_number = apacket['contract_number']
                 
             project_name_base = apacket.get('project_name_base',None)
             if project_name_base is None:
                 ts = sub.define_project_name_base(spa, apacket)
                 if ts:
                     return ts
-            project_name_base = apacket['project_name_base']
+                project_name_base = apacket['project_name_base']
                 
             project_id = apacket.get('project_id',None)
             if project_id is None:
                 ts = sub.define_project(spa, apacket)
                 if ts:
                     return ts
-            project_id = apacket['project_id']
-            service_units_allocated = apacket.get('service_units_allocated',None)
-            remote_site_login = apacket['remote_site_login']
+                project_id = apacket['project_id']
+                service_units_allocated = apacket.get('service_units_allocated',None)
+                remote_site_login = apacket['remote_site_login']
 
         else:
             project_id = get_first_nonEmpty(apacket,'project_id','ProjectID')

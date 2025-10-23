@@ -12,7 +12,7 @@ from taskstatus import TaskStatus
 from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
                     MergePerson, UpdatePersonDNs)
-from grant import (LookupGrant, ChooseOrAddGrant)
+from grant import (LookupGrant, ChooseOrAddGrantNumber)
 from project import (LookupProjectTask, LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
                      CreateProject, InactivateProject, ReactivateProject)
@@ -208,6 +208,19 @@ class ServiceProviderIF(ABC):
         pass
 
     @abstractmethod
+    def lookup_project_by_grant_number(self, *args, **kwargs) -> str:
+        """Look for a existing project for a given GrantNumber
+
+        Refer to :class:`~project.LookupProjectByGrantNumber` for parameter info.
+        
+        :raises ServiceProviderError: if no implementation is configured
+        :raises ServiceProviderTemporaryError: if a temporary error occurs
+        :return: A ``project_id`` string
+        """
+
+        pass
+
+    @abstractmethod
     def lookup_local_fos(self, *args, **kwargs) -> str:
         """Look up the locally-defined "field of science"
 
@@ -235,30 +248,30 @@ class ServiceProviderIF(ABC):
         pass
 
     @abstractmethod
-    def lookup_grant(self, *args, **kwargs) -> str:
-        """Lookup a single established "Grant" or equivalent object
+    def lookup_contract_number(self, *args, **kwargs) -> str:
+        """Lookup a single established "Contract" or equivalent object
 
-        Refer to :class:`~grant.LookupGrant` for parameter info.
+        Refer to :class:`~grant.LookupContractNumber` for parameter info.
         
         :raises ServiceProviderError: if no implementation is configured
         :raises ServiceProviderTemporaryError: if a temporary error occurs
-        :return: A ``site_grant_key`` string
+        :return: A ``contract_number`` string
         """
         
         pass
     
     @abstractmethod
-    def choose_or_add_grant(self, *args, **kwargs) -> TaskStatus:
-        """Choose an existing grant/contract or create a new one
+    def choose_or_add_contract_number(self, *args, **kwargs) -> TaskStatus:
+        """Choose an existing contract or create a new one
 
-        Given a GrantNumber, select a local grant/contact object or create
+        Given a GrantNumber, select a local contact object or create
         a new one.
 
-        Refer to :class:`~grant.ChooseOrAddGrant` for parameter info.
+        Refer to :class:`~grant.ChooseOrAddContractNumber` for parameter info.
         
         :raises ServiceProviderError: if no implementation is configured
         :raises ServiceProviderTemporaryError: if a temporary error occurs
-        :return: A TaskStatus object, which should include a "site_grant_key"
+        :return: A TaskStatus object, which should include a "contract_number"
             product
         """
 
@@ -544,16 +557,20 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
         valid_kwargs = ActivatePerson(*args,**kwargs)
         return self.implem.activate_person(*args,**valid_kwargs)
 
-    def lookup_grant(self, *args, **kwargs) -> str:
+    def lookup_project_by_grant_number(self, *args, **kwargs) -> str:
         self._check_implem()
-        valid_kwargs = LookupGrant(*args,**kwargs)
-        return self.implem.lookup_grant(*args, **valid_kwargs);
-        
+        valid_kwargs = LookupProjectByGrantNumber(*args,**kwargs)
+        return self.implem.lookup_project_by_grant_number(**valid_kwargs)
+
+    def lookup_contract_number(self, *args, **kwargs) -> str:
+        self._check_implem()
+        valid_kwargs = LookupContractNumber(*args,**kwargs)
+        return self.implem.lookup_contract_number(*args, **valid_kwargs);
     
-    def choose_or_add_grant(self, *args, **kwargs) -> TaskStatus:
+    def choose_or_add_contract_number(self, *args, **kwargs) -> TaskStatus:
         self._check_implem()
-        valid_kwargs = ChooseOrAddGrant(*args,**kwargs)
-        return self.implem.choose_or_add_grant(*args,**valid_kwargs)
+        valid_kwargs = ChooseOrAddContractNumber(*args,**kwargs)
+        return self.implem.choose_or_add_contract_number(*args,**valid_kwargs)
 
     def lookup_local_fos(self, *args, **kwargs) -> str:
         self._check_implem()
