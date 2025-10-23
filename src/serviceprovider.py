@@ -12,6 +12,7 @@ from taskstatus import TaskStatus
 from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
                     MergePerson, UpdatePersonDNs)
+from contract import (LookupContractNumber, ChooseOrAddContractNumber)
 from project import (LookupProjectTask, LookupProjectByGrantNumber,
                      LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
