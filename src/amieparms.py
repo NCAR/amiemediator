@@ -220,6 +220,7 @@ class AMIEParmDescAware(ParmDescAware):
         'ProjectTitle': str,
         'RecordID': str,
         'RemoteSiteLogin': str,
+        'RequestType': str,
         'RequestedLoginList': str,
         'Resource': str,
         'ResourceList': [str],
