@@ -1,18 +1,5 @@
 from amieparms import (AMIEParmDescAware, process_parms)
 
-class LookupContractNumber(AMIEParmDescAware,dict):
-        
-    @process_parms(
-        allowed=[
-            'contract_number',
-        ],
-        required=[
-            'contract_number',
-        ])
-    def __init__(self, *args, **kwargs) -> dict:
-        """Validate, filter, and transform arguments to ``lookup_contract_number()``"""
-        return dict.__init__(self,**kwargs)
-
 class ChooseOrAddContractNumber(AMIEParmDescAware,dict):
     """
     A class used when specifying a GrantNumber known to AMIE

@@ -12,7 +12,7 @@ from taskstatus import TaskStatus
 from organization import (AMIEOrg, LookupOrg, ChooseOrAddOrg)
 from person import (AMIEPerson, LookupPerson, ChooseOrAddPerson, ActivatePerson,
                     MergePerson, UpdatePersonDNs)
-from contract import (LookupContractNumber, ChooseOrAddContractNumber)
+from contract import (ChooseOrAddContractNumber)
 from project import (LookupProjectTask, LookupProjectByGrantNumber,
                      LookupLocalFos, ChooseOrAddLocalFos,
                      LookupProjectNameBase, ChooseOrAddProjectNameBase,
@@ -246,19 +246,6 @@ class ServiceProviderIF(ABC):
         product.
         """
 
-        pass
-
-    @abstractmethod
-    def lookup_contract_number(self, *args, **kwargs) -> str:
-        """Lookup a single established "Contract" or equivalent object
-
-        Refer to :class:`~grant.LookupContractNumber` for parameter info.
-        
-        :raises ServiceProviderError: if no implementation is configured
-        :raises ServiceProviderTemporaryError: if a temporary error occurs
-        :return: A ``contract_number`` string
-        """
-        
         pass
     
     @abstractmethod
@@ -562,11 +549,6 @@ class ServiceProvider(AMIEParmDescAware, ServiceProviderIF):
         self._check_implem()
         valid_kwargs = LookupProjectByGrantNumber(*args,**kwargs)
         return self.implem.lookup_project_by_grant_number(**valid_kwargs)
-
-    def lookup_contract_number(self, *args, **kwargs) -> str:
-        self._check_implem()
-        valid_kwargs = LookupContractNumber(*args,**kwargs)
-        return self.implem.lookup_contract_number(*args, **valid_kwargs);
     
     def choose_or_add_contract_number(self, *args, **kwargs) -> TaskStatus:
         self._check_implem()

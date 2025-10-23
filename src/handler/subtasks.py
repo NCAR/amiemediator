@@ -73,14 +73,12 @@ def merge_person(spa, apacket):
         return merge_ts
 
 def define_contract_number(spa, apacket):
-    contract_number = spa.lookup_contract_number(apacket)
-    if contract_number is None:
-        spa.logdumper.debug("define_contract_number: apacket=", apacket)
-        cts = spa.choose_or_add_contract_number(apacket)
-        if cts['task_state'] == "successful":
-            contract_number = cts.get_product_value('contract_number')
-        else:
-            return cts
+    spa.logdumper.debug("define_contract_number: apacket=", apacket)
+    cts = spa.choose_or_add_contract_number(apacket)
+    if cts['task_state'] == "successful":
+        contract_number = cts.get_product_value('contract_number')
+    else:
+        return cts
     spa.logger.debug("define_contract_number contract_number="+contract_number)
     apacket['contract_number'] = contract_number
     return None

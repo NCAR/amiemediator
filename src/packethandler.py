@@ -226,19 +226,6 @@ class ServiceProviderAdapter(object):
         with SPSession() as sp:
             project_id = sp.lookup_project_by_grant_number(apacket)
         return project_id
-
-    def lookup_contract_number(self, apacket) -> str:
-        """Get the contract_number for the packet
-        
-        :param apacket: An "ActionablePacket"
-        :type apacket: dict 
-        :return: contract_number string
-        """
-
-        contract_number = None
-        with SPSession() as sp:
-            contract_number = sp.lookup_contract_number(apacket)
-        return contract_number
         
     def choose_or_add_contract_number(self, apacket) -> TaskStatus:
         """Get the TaskStatus object from
