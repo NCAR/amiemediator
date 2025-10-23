@@ -214,6 +214,19 @@ class ServiceProviderAdapter(object):
             apacket['person_active'] = active
         return ts
 
+    def lookup_project_by_grant_number(self, apacket) -> str:
+        """Get the Project info for the given GrantNumber
+        
+        :param apacket: An "ActionablePacket"
+        :type apacket: dict 
+        :return: ProjectID string
+        """
+
+        project_id = None
+        with SPSession() as sp:
+            project_id = sp.lookup_project_by_grant_number(apacket)
+        return project_id
+
     def lookup_contract_number(self, apacket) -> str:
         """Get the contract_number for the packet
         
