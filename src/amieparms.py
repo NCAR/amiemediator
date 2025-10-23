@@ -254,6 +254,7 @@ class AMIEParmDescAware(ParmDescAware):
         'amie_transaction_id': "string that uniquely identifies an AMIE " + \
                                "transaction",
         'contingent_resources': "additional resources assigned by local site",
+        'contract_number': "NSF contract number",
         'job_id': "string that uniquely identifies related set of tasks",
         'person_id': "synonym for RemoteSiteLogin",
         'person_active': "Is person currently 'active' at the local site",

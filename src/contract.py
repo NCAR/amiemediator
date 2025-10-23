@@ -4,10 +4,10 @@ class LookupContractNumber(AMIEParmDescAware,dict):
         
     @process_parms(
         allowed=[
-            'GrantNumber',
+            'contract_number',
         ],
         required=[
-            'GrantNumber',
+            'contract_number',
         ])
     def __init__(self, *args, **kwargs) -> dict:
         """Validate, filter, and transform arguments to ``lookup_contract_number()``"""
