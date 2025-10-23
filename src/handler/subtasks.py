@@ -80,7 +80,7 @@ def define_contract_number(spa, apacket):
     else:
         return cts
     spa.logger.debug("define_contract_number contract_number=" + \
-                     str(contract_number or "")
+                     str(contract_number or ""))
     apacket['contract_number'] = contract_number
     return None
 
