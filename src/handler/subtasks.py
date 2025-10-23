@@ -79,7 +79,8 @@ def define_contract_number(spa, apacket):
         contract_number = cts.get_product_value('contract_number')
     else:
         return cts
-    spa.logger.debug("define_contract_number contract_number="+contract_number)
+    spa.logger.debug("define_contract_number contract_number=" + \
+                     str(contract_number or "")
     apacket['contract_number'] = contract_number
     return None
 
