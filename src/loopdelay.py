@@ -17,10 +17,10 @@ class WaitParms(object):
 
 class LoopDelay(object):
     def __init__(self, wait_parms, target_time=None):
-        if target_time == None:
-            target_time = self.now()
         # Keep a timeutil object so that it can be easily mocked
         self.timeutil = wait_parms.get_timeutil()
+        if target_time == None:
+            target_time = self.now()
         self.wait_parms = wait_parms
         self.target_time = target_time
 
