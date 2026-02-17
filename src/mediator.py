@@ -1,5 +1,7 @@
 import sys
 from datetime import datetime
+import requests
+from requests.exceptions import JSONDecodeError
 import logging
 from logdumper import LogDumper
 from amieclient import AMIEClient
@@ -216,7 +218,14 @@ class AMIEMediator(object):
             previous_wait_secs = wait_secs if wait_secs else 0
 
             self.logger.debug("!!!run_loop _load_amie_packets")
-            apackets = self._load_amie_packets()
+            try:
+                apackets = self._load_amie_packets()
+            except JSONDecodeError as ex:
+                if "Expecting value: line 1 column 1 (char 0)" in str(ex):
+                    pass
+                else:
+                    raise
+                
             self.logger.debug("!!!run_loop _flush_amie_packets")
             self._flush_amie_packets()
 
