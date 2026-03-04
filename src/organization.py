@@ -17,6 +17,7 @@ class AMIEOrg(AMIEParmDescAware,dict):
             'State',
             'Country',
             'Zip',
+            'GrantNumber',
             ],
         required=[
             'OrgCode',
@@ -63,6 +64,7 @@ class ChooseOrAddOrg(AMIEParmDescAware,dict):
             'Organization',
             'OrgCode',
             'State',
+            'GrantNumber',
             ],
         required=[
             'amie_transaction_id',

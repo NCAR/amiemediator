@@ -77,6 +77,7 @@ class ReactivateAccount(AMIEParmDescAware,dict):
             'timestamp',
 
             'Comment',
+            'GrantNumber',
             'PersonID',
             'ProjectID',
             'Resource',
@@ -112,6 +113,7 @@ class NotifyUser(AMIEParmDescAware,dict):
             'BusinessPhoneNumber',
             'contingent_resources',
             'Email',
+            'GrantNumber',
             'PersonID',
             'person_id',
             'project_id',

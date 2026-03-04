@@ -26,6 +26,7 @@ class ModifyUser(AMIEParmDescAware,dict):
             'DnList',
             'Email',
             'FirstName',
+            'GrantNumber',
             'HomePhoneComment',
             'HomePhoneExtension',
             'HomePhoneNumber',

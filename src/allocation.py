@@ -13,6 +13,7 @@ class UpdateAllocation(AMIEParmDescAware,dict):
 
             'AllocationType',
             'EndDate',
+            'GrantNumber',
             'ProjectID',
             'Resource',
             'ServiceUnitsAllocated',
